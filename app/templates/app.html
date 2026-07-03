@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMS Gateway</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#4F46E5">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            background-attachment: fixed;
+            color: #1e293b;
+        }
+        .code-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Thin, modern scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 99px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #1e3a8a;
+        }
+        .glass-card {
+            background-color: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(30, 58, 138, 0.08);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-card:hover {
+            border-color: rgba(30, 58, 138, 0.16);
+            box-shadow: 0 10px 30px -4px rgba(30, 58, 138, 0.08);
+        }
+        .inner-dark-card {
+            background-color: rgba(248, 250, 252, 0.85);
+            border: 1px solid rgba(30, 58, 138, 0.05);
+        }
+    </style>
+</head>
+<body class="text-slate-800 min-h-screen pb-8">
+
+    <!-- Auth Screen -->
+    <div id="screen-login" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden" style="background: radial-gradient(circle at 50% 50%, #f8fafc 0%, #e2e8f0 100%);">
+        <div class="w-full max-w-md bg-white/90 border border-slate-200 p-8 rounded-2xl shadow-[0_10px_40px_rgba(30,58,138,0.06)] backdrop-blur-xl">
+            <div class="text-center mb-6">
+                <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-700 to-indigo-600 flex items-center justify-center text-white mx-auto mb-3 shadow-[0_4px_20px_rgba(30,58,138,0.25)]">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                </div>
+                <h1 class="text-xl font-extrabold text-slate-900 tracking-tight">Welcome Back</h1>
+                <p class="text-xs text-slate-500 mt-1">Sign in with your credentials</p>
+            </div>
+            <form id="form-login" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-blue-700 uppercase tracking-wider mb-1.5">Username</label>
+                    <input type="text" id="login-username" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-700/20 transition placeholder:text-slate-400" placeholder="e.g. rahul">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-blue-700 uppercase tracking-wider mb-1.5">Password</label>
+                    <input type="password" id="login-password" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-700/20 transition placeholder:text-slate-400" placeholder="••••••••">
+                </div>
+                <button type="submit" class="w-full bg-gradient-to-r from-blue-700 to-indigo-600 hover:from-blue-600 hover:to-indigo-500 py-3.5 rounded-xl font-bold text-sm text-white transition active:scale-[0.98] shadow-lg shadow-blue-700/10">
+                    Sign In
+                </button>
+            </form>
+            <p id="login-error" class="text-rose-500 font-semibold text-xs text-center mt-4 min-h-[1.5rem]"></p>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div id="screen-dashboard" class="hidden">
+
+        <!-- Navigation Bar -->
+        <nav class="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-700 to-indigo-600 flex items-center justify-center text-white shadow-[0_4px_12px_rgba(30,58,138,0.15)]">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    </div>
+                    <div>
+                        <span class="font-extrabold text-sm tracking-wide text-slate-800 uppercase">SMS Gateway</span>
+                        <span id="user-display-name" class="text-[10px] text-blue-700 font-extrabold tracking-widest uppercase ml-1.5 px-1.5 py-0.5 rounded bg-blue-50 border border-blue-100 shadow-sm">Loading...</span>
+                    </div>
+                </div>
+                <button id="btn-logout" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 font-bold text-xs px-3.5 py-2 rounded-lg transition-all active:scale-95">
+                    Logout
+                </button>
+            </div>
+        </nav>
+
+        <!-- Content Workspace -->
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <!-- Left: Conversations List -->
+            <section class="lg:col-span-1 glass-card rounded-2xl shadow-xl flex flex-col h-[680px] overflow-hidden">
+                <div class="p-5 border-b border-slate-200/60 flex items-center justify-between">
+                    <div>
+                        <h2 class="text-xs font-extrabold text-blue-700 uppercase tracking-widest">Conversations</h2>
+                        <p class="text-[11px] text-slate-500 mt-1 flex items-center">
+                            <svg class="w-3 h-3 text-blue-700 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 00.096.837l-1.32 2.54a1 1 0 00-.097.838l.548 2.2a1 1 0 01.096.837M17 11a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                            <span id="gateway-sim-label" class="font-semibold">Loading...</span>
+                        </p>
+                    </div>
+                    <button id="btn-new-conversation" class="bg-gradient-to-tr from-blue-700 to-indigo-600 hover:from-blue-600 hover:to-indigo-500 text-white w-8 h-8 rounded-lg flex items-center justify-center shadow-md shadow-blue-700/10 transition active:scale-95 shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
+                    </button>
+                </div>
+                <div id="conversations-list" class="flex-1 overflow-y-auto p-2 space-y-1">
+                    <!-- Dynamic conversation rows -->
+                </div>
+            </section>
+
+            <!-- Right: Thread / New Conversation / Empty state -->
+            <section class="lg:col-span-2 glass-card rounded-2xl shadow-xl flex flex-col h-[680px] overflow-hidden">
+
+                <!-- Empty state -->
+                <div id="panel-empty" class="flex-1 flex flex-col items-center justify-center text-slate-400">
+                    <div class="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center mb-3 text-blue-700">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+                    </div>
+                    <span class="text-sm font-semibold text-slate-800">Select a conversation</span>
+                    <span class="text-xs text-slate-500 mt-1">or start a new one with the + button</span>
+                </div>
+
+                <!-- Thread view -->
+                <div id="panel-thread" class="flex-1 flex-col overflow-hidden hidden">
+                    <div class="border-b border-slate-200/60 p-4 flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-full bg-slate-100 border border-slate-200 text-blue-700 flex items-center justify-center shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        </div>
+                        <div class="min-w-0">
+                            <div id="thread-contact-number" class="text-sm font-extrabold text-slate-800 code-font truncate">—</div>
+                            <div class="text-[11px] text-slate-500 font-medium">SMS conversation</div>
+                        </div>
+                    </div>
+                    <div id="thread-messages" class="flex-1 overflow-y-auto p-5 space-y-3.5 flex flex-col">
+                        <!-- Dynamic bubbles -->
+                    </div>
+                    <form id="form-send-thread" class="p-3.5 bg-white/95 border-t border-slate-200/60 flex gap-2 items-center">
+                        <textarea id="thread-text" rows="1" required class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 text-sm focus:outline-none focus:border-blue-700 transition resize-none placeholder:text-slate-400" placeholder="Type a message..."></textarea>
+                        <button type="submit" class="h-[46px] w-[46px] flex items-center justify-center bg-gradient-to-tr from-blue-700 to-indigo-600 hover:from-blue-600 hover:to-indigo-500 text-white rounded-xl shadow-lg shadow-blue-700/10 active:scale-95 transition shrink-0">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- New conversation form -->
+                <div id="panel-new-conversation" class="flex-1 flex-col overflow-hidden hidden">
+                    <div class="border-b border-slate-200/60 p-4 flex items-center gap-3">
+                        <button id="btn-new-conversation-back" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition shrink-0">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
+                        </button>
+                        <div class="text-sm font-bold text-slate-800">New Conversation</div>
+                    </div>
+                    <form id="form-new-conversation" class="p-6 space-y-4 max-w-md">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Recipient Number</label>
+                            <input type="tel" id="new-conv-to" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 text-sm focus:outline-none focus:border-blue-700 transition placeholder:text-slate-400" placeholder="e.g. +919876543210">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Message</label>
+                            <textarea id="new-conv-text" rows="4" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 text-sm focus:outline-none focus:border-blue-700 transition resize-none placeholder:text-slate-400" placeholder="Type your message..."></textarea>
+                        </div>
+                        <button type="submit" class="w-full bg-gradient-to-r from-blue-700 to-indigo-600 hover:from-blue-600 hover:to-indigo-500 text-white font-bold py-3.5 rounded-xl text-sm transition shadow-lg shadow-blue-700/10 active:scale-[0.98]">
+                            Send Message
+                        </button>
+                    </form>
+                </div>
+
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Script Application Logic -->
+    <script>
+        const AUTH_TOKEN_KEY = "smsgateway_user_token";
+        const USERNAME_KEY = "smsgateway_username";
+        const DISPLAY_NAME_KEY = "smsgateway_user_name";
+        const SIM_LABEL_KEY = "smsgateway_sim_num";
+
+        const screenLogin = document.getElementById("screen-login");
+        const screenDashboard = document.getElementById("screen-dashboard");
+
+        const formLogin = document.getElementById("form-login");
+        const formSendThread = document.getElementById("form-send-thread");
+        const formNewConversation = document.getElementById("form-new-conversation");
+        const conversationsList = document.getElementById("conversations-list");
+        const threadMessages = document.getElementById("thread-messages");
+
+        const panelEmpty = document.getElementById("panel-empty");
+        const panelThread = document.getElementById("panel-thread");
+        const panelNewConversation = document.getElementById("panel-new-conversation");
+
+        let allMessages = [];
+        let activeContact = null;
+
+        function showPanel(panel) {
+            [panelEmpty, panelThread, panelNewConversation].forEach(p => {
+                p.classList.add("hidden");
+                p.classList.remove("flex");
+            });
+            panel.classList.remove("hidden");
+            panel.classList.add("flex");
+        }
+
+        // Initialization check
+        function checkAuth() {
+            const token = localStorage.getItem(AUTH_TOKEN_KEY);
+            if (!token) {
+                screenLogin.classList.remove("hidden");
+                screenDashboard.classList.add("hidden");
+            } else {
+                screenLogin.classList.add("hidden");
+                screenDashboard.classList.remove("hidden");
+                document.getElementById("user-display-name").textContent = "@" + (localStorage.getItem(USERNAME_KEY) || "user");
+                document.getElementById("gateway-sim-label").textContent = localStorage.getItem(SIM_LABEL_KEY) || "Active Node";
+                showPanel(panelEmpty);
+                loadMessages();
+            }
+        }
+
+        // Login Submit
+        formLogin.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const username = document.getElementById("login-username").value.trim();
+            const password = document.getElementById("login-password").value.trim();
+            const errDiv = document.getElementById("login-error");
+            errDiv.textContent = "";
+
+            try {
+                const r = await fetch("/api/login", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ username, password })
+                });
+                const res = await r.json();
+
+                if (!r.ok) {
+                    errDiv.textContent = res.error || "Login failed. Check your credentials.";
+                    return;
+                }
+
+                localStorage.setItem(AUTH_TOKEN_KEY, res.token);
+                localStorage.setItem(USERNAME_KEY, res.username);
+                localStorage.setItem(DISPLAY_NAME_KEY, res.name);
+                localStorage.setItem(SIM_LABEL_KEY, res.my_number);
+
+                checkAuth();
+            } catch (err) {
+                errDiv.textContent = "Server unreachable. Check your connection.";
+            }
+        });
+
+        // Logout
+        document.getElementById("btn-logout").addEventListener("click", () => {
+            localStorage.clear();
+            activeContact = null;
+            checkAuth();
+        });
+
+        // --- Date / time formatting -------------------------------------
+        function parseServerTime(str) {
+            if (!str) return null;
+            const [datePart, timePart] = str.split(" ");
+            const [y, mo, d] = datePart.split("-").map(Number);
+            const [h, mi, s] = (timePart || "00:00:00").split(":").map(Number);
+            return new Date(y, mo - 1, d, h, mi, s || 0);
+        }
+
+        function formatClock(date) {
+            return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+        }
+
+        function formatListTimestamp(str) {
+            const date = parseServerTime(str);
+            if (!date) return "";
+            const now = new Date();
+            const isToday = date.toDateString() === now.toDateString();
+            const yesterday = new Date(now);
+            yesterday.setDate(now.getDate() - 1);
+            const isYesterday = date.toDateString() === yesterday.toDateString();
+
+            if (isToday) return formatClock(date);
+            if (isYesterday) return "Yesterday";
+            return date.toLocaleDateString([], { day: "numeric", month: "short" });
+        }
+
+        function formatBubbleTimestamp(str) {
+            const date = parseServerTime(str);
+            if (!date) return "";
+            const now = new Date();
+            const isToday = date.toDateString() === now.toDateString();
+            const dayLabel = isToday
+                ? "Today"
+                : date.toLocaleDateString([], { day: "numeric", month: "short" });
+            return `${dayLabel}, ${formatClock(date)}`;
+        }
+
+        // --- Load + group messages into conversations --------------------
+        async function loadMessages() {
+            const token = localStorage.getItem(AUTH_TOKEN_KEY);
+            if (!token) return;
+
+            try {
+                const r = await fetch("/api/inbox", {
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+                if (r.status === 401) {
+                    localStorage.clear();
+                    checkAuth();
+                    return;
+                }
+                const data = await r.json();
+                allMessages = data.messages || [];
+                renderConversations();
+                if (activeContact) renderThread(activeContact);
+            } catch (e) {
+                console.error("Failed to load message history:", e);
+            }
+        }
+
+        function normalizePhone(phone) {
+            if (!phone) return "";
+            const digits = phone.replace(/[^0-9]/g, "");
+            if (digits.length === 0) return phone.trim();
+            return digits.length >= 10 ? digits.slice(-10) : digits;
+        }
+
+        function groupByContact(messages) {
+            const groups = {};
+            messages.forEach(m => {
+                const rawContact = m.direction === "out" ? m.recipient : m.sender;
+                const contactKey = normalizePhone(rawContact);
+                if (!groups[contactKey]) groups[contactKey] = [];
+                groups[contactKey].push(m);
+            });
+            return Object.entries(groups).map(([contactKey, msgs]) => {
+                const lastMessage = msgs[0];
+                const displayName = lastMessage.direction === "out" ? lastMessage.recipient : lastMessage.sender;
+                return {
+                    contact: displayName,
+                    contactKey: contactKey,
+                    lastMessage,
+                    messages: msgs,
+                };
+            }).sort((a, b) => (b.lastMessage.id > a.lastMessage.id ? 1 : -1));
+        }
+
+        function renderConversations() {
+            conversationsList.innerHTML = "";
+            const conversations = groupByContact(allMessages);
+
+            if (conversations.length === 0) {
+                conversationsList.innerHTML = `
+                    <div class="flex flex-col items-center justify-center text-slate-500 py-16 px-4 text-center">
+                        <svg class="w-10 h-10 mb-2 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+                        <span class="text-sm">No conversations yet</span>
+                        <span class="text-xs text-slate-600 mt-1">Tap + to send your first message</span>
+                    </div>
+                `;
+                return;
+            }
+
+            conversations.forEach(conv => {
+                const isMine = conv.lastMessage.direction === "out";
+                let statusPrefix = "";
+                if (isMine) {
+                    if (conv.lastMessage.status === "sent") statusPrefix = `<span class="text-emerald-600 font-semibold">Sent · </span>`;
+                    else if (conv.lastMessage.status === "queued") statusPrefix = `<span class="text-amber-600 font-semibold animate-pulse">Sending... · </span>`;
+                    else statusPrefix = `<span class="text-rose-600 font-semibold">Failed · </span>`;
+                } else {
+                    statusPrefix = `<span class="text-blue-700 font-semibold">Reply · </span>`;
+                }
+
+                const isActive = activeContact && (normalizePhone(conv.contact) === normalizePhone(activeContact));
+                const row = document.createElement("div");
+                row.className = `flex items-center gap-3 px-3 py-3 rounded-xl cursor-pointer transition ${isActive ? "bg-blue-50 border border-blue-100" : "hover:bg-slate-50 border border-transparent"}`;
+                row.innerHTML = `
+                    <div class="w-10 h-10 rounded-full bg-slate-100 border border-slate-200/60 flex items-center justify-center text-slate-500 shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-bold text-slate-800 code-font truncate">${conv.contact}</span>
+                            <span class="text-[10px] text-slate-500 font-medium shrink-0 ml-2">${formatListTimestamp(conv.lastMessage.time)}</span>
+                        </div>
+                        <p class="text-xs text-slate-500 truncate mt-0.5">${statusPrefix}${escapeHtml(conv.lastMessage.text)}</p>
+                    </div>
+                `;
+                row.addEventListener("click", () => openThread(conv.contact));
+                conversationsList.appendChild(row);
+            });
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement("div");
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // --- Thread (single conversation) view ---------------------------
+        function openThread(contact) {
+            activeContact = contact;
+            document.getElementById("thread-contact-number").textContent = contact;
+            showPanel(panelThread);
+            renderThread(contact);
+            renderConversations(); // refresh highlight state
+        }
+
+        function renderThread(contact) {
+            const targetKey = normalizePhone(contact);
+            const msgs = allMessages
+                .filter(m => {
+                    const msgContact = m.direction === "out" ? m.recipient : m.sender;
+                    return normalizePhone(msgContact) === targetKey;
+                })
+                .slice()
+                .reverse();
+
+            threadMessages.innerHTML = "";
+            msgs.forEach(m => {
+                const isMine = m.direction === "out";
+                const containerClass = isMine ? "self-end items-end" : "self-start items-start";
+
+                let bubbleColor = "bg-slate-100 border border-slate-200/80 text-slate-800";
+                if (isMine) {
+                    if (m.status === "sent") bubbleColor = "bg-blue-700 text-white shadow-sm";
+                    else if (m.status === "queued") bubbleColor = "bg-slate-200 text-slate-700 animate-pulse border border-slate-300";
+                    else bubbleColor = "bg-rose-50 text-rose-700 border border-rose-100";
+                }
+
+                let statusBadge = "";
+                if (isMine) {
+                    if (m.status === "sent") statusBadge = `<span class="text-emerald-600">✓ Delivered</span>`;
+                    else if (m.status === "queued") statusBadge = `<span class="text-slate-500">⚡ Sending...</span>`;
+                    else statusBadge = `<span class="text-rose-600 font-bold">✕ Failed</span>`;
+                }
+
+                const bubbleHtml = `
+                    <div class="max-w-[75%] flex flex-col ${containerClass}">
+                        <div class="px-3.5 py-2.5 rounded-2xl text-sm font-medium leading-relaxed break-all ${bubbleColor}">
+                            ${escapeHtml(m.text)}
+                        </div>
+                        <div class="flex items-center space-x-1.5 mt-1 text-[10px] text-slate-500 px-1 font-semibold">
+                            <span>${formatBubbleTimestamp(m.time)}</span>
+                            ${statusBadge ? `<span>·</span> ${statusBadge}` : ""}
+                        </div>
+                    </div>
+                `;
+                threadMessages.innerHTML += bubbleHtml;
+            });
+
+            setTimeout(() => {
+                threadMessages.scrollTop = threadMessages.scrollHeight;
+            }, 50);
+        }
+
+        formSendThread.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            if (!activeContact) return;
+            const textInput = document.getElementById("thread-text");
+            const text = textInput.value.trim();
+            if (!text) return;
+
+            textInput.value = "";
+            await sendMessage(activeContact, text);
+        });
+
+        // --- New conversation panel --------------------------------------
+        document.getElementById("btn-new-conversation").addEventListener("click", () => {
+            document.getElementById("new-conv-to").value = "";
+            document.getElementById("new-conv-text").value = "";
+            showPanel(panelNewConversation);
+        });
+
+        document.getElementById("btn-new-conversation-back").addEventListener("click", () => {
+            showPanel(activeContact ? panelThread : panelEmpty);
+        });
+
+        formNewConversation.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const to = document.getElementById("new-conv-to").value.trim();
+            const text = document.getElementById("new-conv-text").value.trim();
+            if (!to || !text) return;
+
+            await sendMessage(to, text);
+            openThread(to);
+        });
+
+        async function sendMessage(to, text) {
+            const token = localStorage.getItem(AUTH_TOKEN_KEY);
+            if (!token) return;
+
+            try {
+                const r = await fetch("/api/send", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ to, text })
+                });
+
+                if (r.status === 401) {
+                    localStorage.clear();
+                    checkAuth();
+                    return;
+                }
+
+                loadMessages();
+            } catch (err) {
+                alert("Failed to queue message. Check that the server is online.");
+            }
+        }
+
+        // Check login on startup
+        checkAuth();
+
+        // Register poll interval to keep the UI reactive every 7 seconds
+        setInterval(() => {
+            const token = localStorage.getItem(AUTH_TOKEN_KEY);
+            if (token) loadMessages();
+        }, 7000);
+    </script>
+</body>
+</html>
