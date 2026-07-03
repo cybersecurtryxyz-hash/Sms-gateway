@@ -108,17 +108,8 @@ def init_db():
             """
         )
 
-        # Seed default coworkers only on first boot, with hashed passwords
-        cursor.execute("SELECT COUNT(*) FROM users")
-        if cursor.fetchone()[0] == 0:
-            cursor.execute(
-                "INSERT INTO users (username, name, password_hash) VALUES (?, ?, ?)",
-                ("priya", "Priya Sharma", generate_password_hash("priyapassword")),
-            )
-            cursor.execute(
-                "INSERT INTO users (username, name, password_hash) VALUES (?, ?, ?)",
-                ("rahul", "Rahul Kumar", generate_password_hash("rahulpassword")),
-            )
+        # Delete default coworkers if they exist from previous template runs to ensure clean state
+        cursor.execute("DELETE FROM users WHERE username IN ('priya', 'rahul')")
 
         cursor.execute("SELECT COUNT(*) FROM settings WHERE key = 'admin_password'")
         if cursor.fetchone()[0] == 0:
