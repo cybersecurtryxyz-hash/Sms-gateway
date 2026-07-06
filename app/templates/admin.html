@@ -237,48 +237,18 @@
 
     <!-- System logic -->
     <script>
-        // NOTE: we used to store the raw admin password in localStorage and
-        // send it as a header on every request. That meant any stored-XSS
-        // bug anywhere on this page (e.g. from an unescaped SMS body) could
-        // steal the actual password. Now we only ever send the password once
-        // at login, and store a short-lived signed session token instead -
-        // stealing the token is still bad, but it expires and can't be used
-        // to derive the real password.
-        const ADMIN_TOKEN_KEY = "smsgateway_admin_token";
+        const ADMIN_PASS_KEY = "smsgateway_admin_pw";
 
         const divAuth = document.getElementById("admin-auth");
         const formAdminLogin = document.getElementById("form-admin-login");
         const adminPassInput = document.getElementById("admin-pass-input");
         const authError = document.getElementById("admin-auth-error");
 
-        function escapeHtml(str) {
-            const div = document.createElement("div");
-            div.textContent = str === undefined || str === null ? "" : String(str);
-            return div.innerHTML;
-        }
-
-        function authHeaders(extra) {
-            const token = localStorage.getItem(ADMIN_TOKEN_KEY);
-            return Object.assign({ "Authorization": "Bearer " + token }, extra || {});
-        }
-
         // Initialization auth checks
         function initAdminAuth() {
-            const token = localStorage.getItem(ADMIN_TOKEN_KEY);
-            if (token) {
-                // Validate the stored token against a real protected endpoint
-                // rather than re-sending any password.
-                fetch("/api/admin/status", { headers: authHeaders() }).then((r) => {
-                    if (r.ok) {
-                        divAuth.classList.add("hidden");
-                        runConsole();
-                    } else {
-                        localStorage.removeItem(ADMIN_TOKEN_KEY);
-                        divAuth.classList.remove("hidden");
-                    }
-                }).catch(() => {
-                    divAuth.classList.remove("hidden");
-                });
+            const savedPw = localStorage.getItem(ADMIN_PASS_KEY);
+            if (savedPw) {
+                testAdminAuth(savedPw);
             } else {
                 divAuth.classList.remove("hidden");
             }
@@ -297,13 +267,12 @@
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ password })
                 });
-                const d = await r.json().catch(() => ({}));
-                if (r.ok && d.token) {
-                    localStorage.setItem(ADMIN_TOKEN_KEY, d.token);
+                if (r.ok) {
+                    localStorage.setItem(ADMIN_PASS_KEY, password);
                     divAuth.classList.add("hidden");
                     runConsole();
                 } else {
-                    localStorage.removeItem(ADMIN_TOKEN_KEY);
+                    localStorage.removeItem(ADMIN_PASS_KEY);
                     divAuth.classList.remove("hidden");
                     authError.textContent = "Incorrect admin password. Access denied.";
                 }
@@ -313,7 +282,7 @@
         }
 
         document.getElementById("btn-admin-logout").addEventListener("click", () => {
-            localStorage.removeItem(ADMIN_TOKEN_KEY);
+            localStorage.removeItem(ADMIN_PASS_KEY);
             location.reload();
         });
 
@@ -338,9 +307,10 @@
 
         // Fetch Device Status from Server
         async function loadDeviceStatus() {
+            const pw = localStorage.getItem(ADMIN_PASS_KEY);
             try {
                 const r = await fetch("/api/admin/status", {
-                    headers: authHeaders()
+                    headers: { "X-Admin-Password": pw }
                 });
                 if (!r.ok) return;
                 const d = await r.json();
@@ -370,9 +340,10 @@
 
         // Fetch User Database
         async function loadUsers() {
+            const pw = localStorage.getItem(ADMIN_PASS_KEY);
             try {
                 const r = await fetch("/api/admin/users", {
-                    headers: authHeaders()
+                    headers: { "X-Admin-Password": pw }
                 });
                 if (!r.ok) return;
                 const d = await r.json();
@@ -388,34 +359,25 @@
             users.forEach(u => {
                 // Note: passwords are stored as salted hashes and are never
                 // returned by the API, so only the username is copyable here.
-                // u.name / u.username are escaped below and buttons use
-                // addEventListener (not inline onclick string interpolation)
-                // so a crafted name/username can't break out into HTML/JS.
-                const card = document.createElement("div");
-                card.className = "inner-dark-card p-3.5 rounded-xl space-y-2.5 shadow-sm hover:border-blue-700/20 transition-all";
-                card.innerHTML = `
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <div class="text-xs font-bold text-slate-800">${escapeHtml(u.name)}</div>
-                            <div class="text-[10px] text-blue-700 font-bold code-font mt-0.5">@${escapeHtml(u.username)}</div>
+                container.innerHTML += `
+                    <div class="inner-dark-card p-3.5 rounded-xl space-y-2.5 shadow-sm hover:border-blue-700/20 transition-all">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="text-xs font-bold text-slate-800">${u.name}</div>
+                                <div class="text-[10px] text-blue-700 font-bold code-font mt-0.5">@${u.username}</div>
+                            </div>
+                            <button onclick="deleteUser('${u.username}')" class="text-rose-600 hover:bg-rose-50 px-2.5 py-1 rounded text-[10px] font-extrabold transition">
+                                Remove
+                            </button>
                         </div>
-                        <button class="btn-remove-user text-rose-600 hover:bg-rose-50 px-2.5 py-1 rounded text-[10px] font-extrabold transition">
-                            Remove
-                        </button>
-                    </div>
-                    <div class="flex items-center justify-between text-[10px] bg-slate-50 p-2 rounded border border-slate-100">
-                        <span class="text-slate-500">Password set at creation time</span>
-                        <button class="btn-copy-username text-blue-700 hover:text-blue-600 font-extrabold">
-                            Copy
-                        </button>
+                        <div class="flex items-center justify-between text-[10px] bg-slate-50 p-2 rounded border border-slate-100">
+                            <span class="text-slate-500">Password set at creation time</span>
+                            <button onclick="navigator.clipboard.writeText('${u.username}'); alert('Username copied!')" class="text-blue-700 hover:text-blue-600 font-extrabold">
+                                Copy
+                            </button>
+                        </div>
                     </div>
                 `;
-                card.querySelector(".btn-remove-user").addEventListener("click", () => deleteUser(u.username));
-                card.querySelector(".btn-copy-username").addEventListener("click", () => {
-                    navigator.clipboard.writeText(u.username);
-                    alert("Username copied!");
-                });
-                container.appendChild(card);
             });
         }
 
@@ -425,11 +387,15 @@
             const username = document.getElementById("new-user-username").value.trim();
             const name = document.getElementById("new-user-name").value.trim();
             const password = document.getElementById("new-user-pass").value.trim();
+            const pw = localStorage.getItem(ADMIN_PASS_KEY);
 
             try {
                 const r = await fetch("/api/admin/users", {
                     method: "POST",
-                    headers: authHeaders({ "Content-Type": "application/json" }),
+                    headers: { 
+                        "Content-Type": "application/json",
+                        "X-Admin-Password": pw
+                    },
                     body: JSON.stringify({ username, name, password })
                 });
                 if (r.ok) {
@@ -449,6 +415,7 @@
         document.getElementById("form-change-admin-pass").addEventListener("submit", async (e) => {
             e.preventDefault();
             const newPassword = document.getElementById("new-admin-password").value.trim();
+            const pw = localStorage.getItem(ADMIN_PASS_KEY);
             const msgEl = document.getElementById("change-admin-pass-msg");
             msgEl.textContent = "";
 
@@ -457,16 +424,17 @@
             try {
                 const r = await fetch("/api/admin/change-password", {
                     method: "POST",
-                    headers: authHeaders({ "Content-Type": "application/json" }),
+                    headers: { 
+                        "Content-Type": "application/json",
+                        "X-Admin-Password": pw
+                    },
                     body: JSON.stringify({ new_password: newPassword })
                 });
                 const d = await r.json();
                 if (r.ok) {
                     msgEl.className = "text-xs text-center mt-2 font-medium text-emerald-400";
-                    msgEl.textContent = "Admin password updated successfully! Use it next time you log in.";
-                    // Note: we no longer store the raw password client-side at
-                    // all, so there's nothing to update in localStorage here -
-                    // the current session token remains valid until it expires.
+                    msgEl.textContent = "Admin password updated successfully!";
+                    localStorage.setItem(ADMIN_PASS_KEY, newPassword);
                     document.getElementById("new-admin-password").value = "";
                 } else {
                     msgEl.className = "text-xs text-center mt-2 font-medium text-rose-500";
@@ -480,10 +448,11 @@
 
         async function deleteUser(username) {
             if (!confirm(`Are you sure you want to remove user @${username}? This cannot be undone.`)) return;
+            const pw = localStorage.getItem(ADMIN_PASS_KEY);
             try {
-                const r = await fetch(`/api/admin/users/${encodeURIComponent(username)}`, {
+                const r = await fetch(`/api/admin/users/${username}`, {
                     method: "DELETE",
-                    headers: authHeaders()
+                    headers: { "X-Admin-Password": pw }
                 });
                 if (r.ok) loadUsers();
             } catch (err) {
@@ -493,9 +462,10 @@
 
         // Fetch Global Message logs
         async function loadMessages() {
+            const pw = localStorage.getItem(ADMIN_PASS_KEY);
             try {
                 const r = await fetch("/api/admin/messages", {
-                    headers: authHeaders()
+                    headers: { "X-Admin-Password": pw }
                 });
                 if (!r.ok) return;
                 const d = await r.json();
@@ -535,18 +505,13 @@
                     statusBadge = `<span class="text-rose-600 font-bold">● Failed</span>`;
                 }
 
-                // IMPORTANT: m.sender / m.text / m.recipient / m.time all come
-                // from raw SMS content (any phone number can text the gateway
-                // number and control this text) - they MUST be escaped before
-                // going into innerHTML, or a crafted SMS becomes stored XSS
-                // that runs in this admin dashboard.
                 tbody.innerHTML += `
                     <tr class="hover:bg-slate-50 transition border-b border-slate-100">
                         <td class="py-3.5 pr-2">${dirBadge}</td>
-                        <td class="py-3.5 font-bold text-slate-600">${escapeHtml(m.sender)}</td>
-                        <td class="py-3.5 text-slate-800 font-semibold code-font">${escapeHtml(m.recipient)}</td>
-                        <td class="py-3.5 pr-4 text-slate-700 font-medium break-all max-w-xs">${escapeHtml(m.text)}</td>
-                        <td class="py-3.5 text-slate-500 font-medium whitespace-nowrap">${escapeHtml(m.time)}</td>
+                        <td class="py-3.5 font-bold text-slate-600">${m.sender}</td>
+                        <td class="py-3.5 text-slate-800 font-semibold code-font">${m.recipient}</td>
+                        <td class="py-3.5 pr-4 text-slate-700 font-medium break-all max-w-xs">${m.text}</td>
+                        <td class="py-3.5 text-slate-500 font-medium whitespace-nowrap">${m.time}</td>
                         <td class="py-3.5">${statusBadge}</td>
                     </tr>
                 `;

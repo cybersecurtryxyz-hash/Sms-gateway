@@ -1,4 +1,5 @@
 import logging
+import os
 
 from flask import Flask
 
@@ -17,20 +18,16 @@ def create_app():
     )
     logger = logging.getLogger(__name__)
 
-    insecure = Config.insecure_defaults_in_use()
-    if insecure:
-        msg = (
-            "The following secrets are still on their insecure built-in defaults: "
-            f"{', '.join(insecure)}. Set real values via environment variables. "
-            "(Local dev override: set ALLOW_INSECURE_DEFAULTS=true if you really "
-            "mean to run this way.)"
+    if not os.environ.get("ADMIN_PASSWORD"):
+        logger.warning(
+            "ADMIN_PASSWORD is not set - using an insecure default. "
+            "Set it before deploying to production."
         )
-        if Config.running_on_hosted_platform() and not Config.ALLOW_INSECURE_DEFAULTS:
-            # Refuse to boot a real deployment with guessable secrets - this is
-            # what let anyone log into /admin with "admin123" or forge the
-            # device Bearer token before.
-            raise RuntimeError("Refusing to start: " + msg)
-        logger.warning(msg)
+    if not os.environ.get("DEVICE_TOKEN"):
+        logger.warning(
+            "DEVICE_TOKEN is not set - using an insecure default. "
+            "Set it before deploying to production."
+        )
 
     with app.app_context():
         init_db()
@@ -39,12 +36,5 @@ def create_app():
     app.register_blueprint(admin_bp)
     app.register_blueprint(coworker_bp)
     app.register_blueprint(device_bp)
-
-    @app.after_request
-    def set_security_headers(response):
-        response.headers.setdefault("X-Content-Type-Options", "nosniff")
-        response.headers.setdefault("X-Frame-Options", "DENY")
-        response.headers.setdefault("Referrer-Policy", "same-origin")
-        return response
 
     return app

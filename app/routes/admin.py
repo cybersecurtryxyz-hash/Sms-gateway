@@ -5,9 +5,8 @@ from flask import Blueprint, request, jsonify
 from werkzeug.security import generate_password_hash
 
 from ..db import get_db
-from ..security import check_admin_auth, verify_admin_password, set_admin_password, generate_admin_token
+from ..security import check_admin_auth, verify_admin_password, set_admin_password
 from ..config import Config
-from ..rate_limit import rate_limit
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/api/admin")
 
@@ -20,14 +19,10 @@ def _require_admin():
 
 
 @admin_bp.route("/login", methods=["POST"])
-@rate_limit(max_attempts=5, window_seconds=60, key_prefix="admin_login")
 def admin_login():
     data = request.json or {}
     if verify_admin_password(data.get("password")):
-        # Issue a short-lived signed session token instead of asking the
-        # client to remember/replay the raw password on every request.
-        token = generate_admin_token()
-        return jsonify({"success": True, "token": token}), 200
+        return jsonify({"success": True}), 200
     return jsonify({"error": "Invalid admin password"}), 401
 
 
