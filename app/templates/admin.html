@@ -353,35 +353,26 @@
             }
         }
 
-        function escapeHtml(str) {
-            if (!str) return "";
-            const div = document.createElement("div");
-            div.textContent = str;
-            return div.innerHTML;
-        }
-
         function renderUsers(users) {
             const container = document.getElementById("users-list");
             container.innerHTML = "";
             users.forEach(u => {
                 // Note: passwords are stored as salted hashes and are never
                 // returned by the API, so only the username is copyable here.
-                const safeName = escapeHtml(u.name);
-                const safeUsername = escapeHtml(u.username);
                 container.innerHTML += `
                     <div class="inner-dark-card p-3.5 rounded-xl space-y-2.5 shadow-sm hover:border-blue-700/20 transition-all">
                         <div class="flex items-center justify-between">
                             <div>
-                                <div class="text-xs font-bold text-slate-800">${safeName}</div>
-                                <div class="text-[10px] text-blue-700 font-bold code-font mt-0.5">@${safeUsername}</div>
+                                <div class="text-xs font-bold text-slate-800">${u.name}</div>
+                                <div class="text-[10px] text-blue-700 font-bold code-font mt-0.5">@${u.username}</div>
                             </div>
-                            <button onclick="deleteUser('${safeUsername.replace(/'/g, "\\'")}')" class="text-rose-600 hover:bg-rose-50 px-2.5 py-1 rounded text-[10px] font-extrabold transition">
+                            <button onclick="deleteUser('${u.username}')" class="text-rose-600 hover:bg-rose-50 px-2.5 py-1 rounded text-[10px] font-extrabold transition">
                                 Remove
                             </button>
                         </div>
                         <div class="flex items-center justify-between text-[10px] bg-slate-50 p-2 rounded border border-slate-100">
                             <span class="text-slate-500">Password set at creation time</span>
-                            <button onclick="navigator.clipboard.writeText('${safeUsername.replace(/'/g, "\\'")}'); alert('Username copied!')" class="text-blue-700 hover:text-blue-600 font-extrabold">
+                            <button onclick="navigator.clipboard.writeText('${u.username}'); alert('Username copied!')" class="text-blue-700 hover:text-blue-600 font-extrabold">
                                 Copy
                             </button>
                         </div>
@@ -517,10 +508,10 @@
                 tbody.innerHTML += `
                     <tr class="hover:bg-slate-50 transition border-b border-slate-100">
                         <td class="py-3.5 pr-2">${dirBadge}</td>
-                        <td class="py-3.5 font-bold text-slate-600">${escapeHtml(m.sender)}</td>
-                        <td class="py-3.5 text-slate-800 font-semibold code-font">${escapeHtml(m.recipient)}</td>
-                        <td class="py-3.5 pr-4 text-slate-700 font-medium break-all max-w-xs">${escapeHtml(m.text)}</td>
-                        <td class="py-3.5 text-slate-500 font-medium whitespace-nowrap">${escapeHtml(m.time)}</td>
+                        <td class="py-3.5 font-bold text-slate-600">${m.sender}</td>
+                        <td class="py-3.5 text-slate-800 font-semibold code-font">${m.recipient}</td>
+                        <td class="py-3.5 pr-4 text-slate-700 font-medium break-all max-w-xs">${m.text}</td>
+                        <td class="py-3.5 text-slate-500 font-medium whitespace-nowrap">${m.time}</td>
                         <td class="py-3.5">${statusBadge}</td>
                     </tr>
                 `;
