@@ -34,10 +34,62 @@ def verify_admin_password(candidate):
     return check_password_hash(get_admin_password_hash(), candidate or "")
 
 
+ADMIN_TOKEN_TTL_SECONDS = 12 * 60 * 60  # 12 hours - shorter-lived than coworker tokens
+
+
+def generate_admin_token():
+    """Secure HMAC signed bearer token for the admin console.
+
+    Unlike the old scheme, the raw admin password is never stored client-side
+    or sent on every request - only this short-lived signed token is.
+    """
+    timestamp = str(int(time.time()))
+    payload = f"admin:{timestamp}"
+    signature = hmac.new(
+        Config.SECRET_KEY.encode("utf-8"),
+        payload.encode("utf-8"),
+        hashlib.sha256
+    ).hexdigest()
+    token = f"{payload}:{signature}"
+    return base64.b64encode(token.encode("utf-8")).decode("utf-8")
+
+
+def verify_admin_token(token):
+    if not token:
+        return False
+    try:
+        decoded = base64.b64decode(token).decode("utf-8")
+        parts = decoded.split(":")
+        if len(parts) != 3:
+            return False
+        role, timestamp, signature = parts
+        if role != "admin":
+            return False
+
+        payload = f"{role}:{timestamp}"
+        expected_sig = hmac.new(
+            Config.SECRET_KEY.encode("utf-8"),
+            payload.encode("utf-8"),
+            hashlib.sha256
+        ).hexdigest()
+
+        if not hmac.compare_digest(signature, expected_sig):
+            return False
+
+        token_time = int(timestamp)
+        if time.time() - token_time > ADMIN_TOKEN_TTL_SECONDS:
+            return False
+
+        return True
+    except Exception:
+        return False
+
+
 def check_admin_auth(req):
-    """Admin requests authenticate via X-Admin-Password header."""
-    pw = req.headers.get("X-Admin-Password")
-    return verify_admin_password(pw)
+    """Admin requests authenticate via a Bearer session token obtained from
+    /api/admin/login. The raw password is only ever sent once, at login."""
+    token = get_bearer_token(req)
+    return verify_admin_token(token)
 
 
 def check_device_auth(req):
