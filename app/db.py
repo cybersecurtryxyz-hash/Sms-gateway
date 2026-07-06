@@ -112,15 +112,7 @@ def init_db():
         cursor.execute("DELETE FROM users WHERE username IN ('priya', 'rahul')")
 
         cursor.execute("SELECT COUNT(*) FROM settings WHERE key = 'admin_password'")
-        admin_password_row_exists = cursor.fetchone()[0] > 0
-
-        if not admin_password_row_exists:
-            # ADMIN_PASSWORD only ever seeds the *initial* password. Once this
-            # row exists, the admin console's "change password" screen is the
-            # sole source of truth - redeploying with a different
-            # ADMIN_PASSWORD env var has no further effect, so admins can
-            # safely rotate their password from the UI without a stray env
-            # var reverting it on the next restart.
+        if cursor.fetchone()[0] == 0:
             cursor.execute(
                 "INSERT INTO settings (key, value) VALUES ('admin_password', ?)",
                 (generate_password_hash(Config.ADMIN_PASSWORD_DEFAULT),),
