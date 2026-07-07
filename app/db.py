@@ -60,7 +60,7 @@ def init_db():
                 username TEXT PRIMARY KEY,
                 name TEXT NOT NULL,
                 password_hash TEXT NOT NULL,
-                role TEXT DEFAULT 'user'
+                role TEXT DEFAULT 'coworker'
             )
             """
         )

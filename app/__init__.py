@@ -6,7 +6,7 @@ from flask import Flask
 from .config import Config
 from .db import init_db
 from .extensions import limiter
-from .routes import pages_bp, admin_bp, user_bp, device_bp
+from .routes import pages_bp, admin_bp, coworker_bp, device_bp
 
 
 def create_app():
@@ -37,7 +37,7 @@ def create_app():
 
     app.register_blueprint(pages_bp)
     app.register_blueprint(admin_bp)
-    app.register_blueprint(user_bp)
+    app.register_blueprint(coworker_bp)
     app.register_blueprint(device_bp)
 
     @app.after_request
@@ -50,8 +50,14 @@ def create_app():
         response.headers["Referrer-Policy"] = "same-origin"
         response.headers.setdefault(
             "Content-Security-Policy",
-            "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; "
-            "script-src 'self' 'unsafe-inline';",
+            "default-src 'self'; "
+            "img-src 'self' data:; "
+            # Tailwind's CDN build (used by admin.html/app.html) generates
+            # CSS via a <script> tag - it must be explicitly allowlisted or
+            # the whole UI renders unstyled (this bit us once already).
+            "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "font-src https://fonts.gstatic.com;",
         )
         return response
 
