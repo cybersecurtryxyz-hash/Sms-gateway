@@ -54,7 +54,7 @@ def check_device_auth(req):
         return False
 
 
-def verify_coworker_password(username, candidate_password):
+def verify_user_password(username, candidate_password):
     conn = get_db()
     user = conn.execute(
         "SELECT * FROM users WHERE username = ?", (username,)
@@ -66,7 +66,7 @@ def verify_coworker_password(username, candidate_password):
 
 
 def generate_token(username):
-    """Secure HMAC signed bearer token for the coworker portal."""
+    """Secure HMAC signed bearer token for the user portal."""
     timestamp = str(int(time.time()))
     payload = f"{username}:{timestamp}"
     signature = hmac.new(
