@@ -1,5 +1,5 @@
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask import Blueprint, request, jsonify
 
@@ -75,7 +75,7 @@ def coworker_send_sms():
 
     conn = get_db()
     msg_id = f"MSG-{int(time.time() * 1000)}"
-    time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    time_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
 
     conn.execute(
         """

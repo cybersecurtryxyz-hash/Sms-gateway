@@ -1,5 +1,5 @@
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask import Blueprint, request, jsonify
 
@@ -55,7 +55,7 @@ def device_poll_messages():
         return err
 
     conn = get_db()
-    time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    time_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
     _touch_heartbeat(conn, time_str, battery="88%")
     conn.commit()
 
@@ -103,7 +103,7 @@ def device_report_status(message_id=None):
     new_status = "sent" if status == "sent" else "failed"
     conn.execute("UPDATE messages SET status = ? WHERE id = ?", (new_status, target_id))
 
-    time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    time_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
     _touch_heartbeat(conn, time_str)
     conn.commit()
     conn.close()
@@ -142,7 +142,7 @@ def device_incoming_message():
         owners = [None]
 
     conn = get_db()
-    time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    time_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
 
     # Insert one row per matched owner so each coworker's filtered inbox
     # (WHERE owner = ?) shows the reply. A shared `id` prefix keeps the

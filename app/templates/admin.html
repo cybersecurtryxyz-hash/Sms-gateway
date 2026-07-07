@@ -239,6 +239,28 @@
     <script>
         const ADMIN_PASS_KEY = "smsgateway_admin_pw";
 
+        // --- Date / time formatting -------------------------------------
+        // Server always sends timestamps as "YYYY-MM-DD HH:MM:SS" in UTC
+        // (see backend routes). Date.UTC() tags the parsed value as UTC so
+        // toLocaleString() below renders it in the viewer's own local
+        // timezone instead of showing the raw server clock value.
+        function parseServerTime(str) {
+            if (!str || str === "Never") return null;
+            const [datePart, timePart] = str.split(" ");
+            const [y, mo, d] = datePart.split("-").map(Number);
+            const [h, mi, s] = (timePart || "00:00:00").split(":").map(Number);
+            return new Date(Date.UTC(y, mo - 1, d, h, mi, s || 0));
+        }
+
+        function formatServerTime(str) {
+            const date = parseServerTime(str);
+            if (!date) return str || "";
+            return date.toLocaleString([], {
+                day: "numeric", month: "short", year: "numeric",
+                hour: "numeric", minute: "2-digit", second: "2-digit"
+            });
+        }
+
         const divAuth = document.getElementById("admin-auth");
         const formAdminLogin = document.getElementById("form-admin-login");
         const adminPassInput = document.getElementById("admin-pass-input");
@@ -327,7 +349,7 @@
                 document.getElementById("node-name").textContent = d.name;
                 document.getElementById("node-battery").textContent = d.battery;
                 document.getElementById("node-version").textContent = "v" + d.version;
-                document.getElementById("node-last-seen").textContent = d.last_seen;
+                document.getElementById("node-last-seen").textContent = formatServerTime(d.last_seen);
                 document.getElementById("app-device-token").dataset.token = d.secret_token;
                 
                 // Display configured endpoints
@@ -549,7 +571,7 @@
                         <td class="py-3.5 font-bold text-slate-600">${escapeHtml(m.sender)}</td>
                         <td class="py-3.5 text-slate-800 font-semibold code-font">${escapeHtml(m.recipient)}</td>
                         <td class="py-3.5 pr-4 text-slate-700 font-medium break-all max-w-xs">${escapeHtml(m.text)}</td>
-                        <td class="py-3.5 text-slate-500 font-medium whitespace-nowrap">${escapeHtml(m.time)}</td>
+                        <td class="py-3.5 text-slate-500 font-medium whitespace-nowrap">${escapeHtml(formatServerTime(m.time))}</td>
                         <td class="py-3.5">${statusBadge}</td>
                     </tr>
                 `;

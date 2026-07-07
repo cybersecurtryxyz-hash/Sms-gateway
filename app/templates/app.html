@@ -278,7 +278,10 @@
             const [datePart, timePart] = str.split(" ");
             const [y, mo, d] = datePart.split("-").map(Number);
             const [h, mi, s] = (timePart || "00:00:00").split(":").map(Number);
-            return new Date(y, mo - 1, d, h, mi, s || 0);
+            // Server always sends timestamps in UTC (see backend). Date.UTC()
+            // tags them as UTC so toLocaleTimeString/toLocaleDateString below
+            // automatically render them in the viewer's own local timezone.
+            return new Date(Date.UTC(y, mo - 1, d, h, mi, s || 0));
         }
 
         function formatClock(date) {

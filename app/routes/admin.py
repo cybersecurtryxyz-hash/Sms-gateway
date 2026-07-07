@@ -1,5 +1,5 @@
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask import Blueprint, request, jsonify
 from werkzeug.security import generate_password_hash
@@ -68,7 +68,8 @@ def admin_status():
     if row["last_seen"] != "Never":
         try:
             last_dt = datetime.strptime(row["last_seen"], "%Y-%m-%d %H:%M:%S")
-            if (datetime.now() - last_dt).total_seconds() > 45:
+            now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
+            if (now_utc - last_dt).total_seconds() > 45:
                 status = "offline"
         except Exception:
             pass
