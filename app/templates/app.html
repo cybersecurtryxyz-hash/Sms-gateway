@@ -219,15 +219,15 @@
 
         // Initialization check
         function checkAuth() {
-            const token = localStorage.getItem(AUTH_TOKEN_KEY);
+            const token = sessionStorage.getItem(AUTH_TOKEN_KEY);
             if (!token) {
                 screenLogin.classList.remove("hidden");
                 screenDashboard.classList.add("hidden");
             } else {
                 screenLogin.classList.add("hidden");
                 screenDashboard.classList.remove("hidden");
-                document.getElementById("user-display-name").textContent = "@" + (localStorage.getItem(USERNAME_KEY) || "user");
-                document.getElementById("integrator-sim-label").textContent = localStorage.getItem(SIM_LABEL_KEY) || "Active Node";
+                document.getElementById("user-display-name").textContent = "@" + (sessionStorage.getItem(USERNAME_KEY) || "user");
+                document.getElementById("integrator-sim-label").textContent = sessionStorage.getItem(SIM_LABEL_KEY) || "Active Node";
                 showPanel(panelEmpty);
                 loadMessages();
             }
@@ -254,10 +254,10 @@
                     return;
                 }
 
-                localStorage.setItem(AUTH_TOKEN_KEY, res.token);
-                localStorage.setItem(USERNAME_KEY, res.username);
-                localStorage.setItem(DISPLAY_NAME_KEY, res.name);
-                localStorage.setItem(SIM_LABEL_KEY, res.my_number);
+                sessionStorage.setItem(AUTH_TOKEN_KEY, res.token);
+                sessionStorage.setItem(USERNAME_KEY, res.username);
+                sessionStorage.setItem(DISPLAY_NAME_KEY, res.name);
+                sessionStorage.setItem(SIM_LABEL_KEY, res.my_number);
 
                 checkAuth();
             } catch (err) {
@@ -267,7 +267,7 @@
 
         // Logout
         document.getElementById("btn-logout").addEventListener("click", () => {
-            localStorage.clear();
+            sessionStorage.clear();
             activeContact = null;
             checkAuth();
         });
@@ -275,60 +275,44 @@
         // --- Date / time formatting -------------------------------------
         function parseServerTime(str) {
             if (!str) return null;
-            try {
-                // Convert format "YYYY-MM-DD HH:MM:SS" to ISO "YYYY-MM-DDTHH:MM:SSZ" to specify UTC timezone
-                const utcIso = str.trim().replace(" ", "T") + "Z";
-                const date = new Date(utcIso);
-                return isNaN(date.getTime()) ? null : date;
-            } catch (e) {
-                return null;
-            }
-        }
-
-        function getIstDayString(date) {
-            return date.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' });
+            const [datePart, timePart] = str.split(" ");
+            const [y, mo, d] = datePart.split("-").map(Number);
+            const [h, mi, s] = (timePart || "00:00:00").split(":").map(Number);
+            return new Date(y, mo - 1, d, h, mi, s || 0);
         }
 
         function formatClock(date) {
-            return date.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: 'numeric', minute: '2-digit', hour12: true });
+            return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
         }
 
         function formatListTimestamp(str) {
             const date = parseServerTime(str);
             if (!date) return "";
             const now = new Date();
-            
-            const istDateStr = getIstDayString(date);
-            const istNowStr = getIstDayString(now);
-            const isToday = (istDateStr === istNowStr);
-            
-            const yesterday = new Date(now.getTime() - 86400000);
-            const istYesterdayStr = getIstDayString(yesterday);
-            const isYesterday = (istDateStr === istYesterdayStr);
+            const isToday = date.toDateString() === now.toDateString();
+            const yesterday = new Date(now);
+            yesterday.setDate(now.getDate() - 1);
+            const isYesterday = date.toDateString() === yesterday.toDateString();
 
             if (isToday) return formatClock(date);
             if (isYesterday) return "Yesterday";
-            return date.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short' });
+            return date.toLocaleDateString([], { day: "numeric", month: "short" });
         }
 
         function formatBubbleTimestamp(str) {
             const date = parseServerTime(str);
             if (!date) return "";
             const now = new Date();
-            
-            const istDateStr = getIstDayString(date);
-            const istNowStr = getIstDayString(now);
-            const isToday = (istDateStr === istNowStr);
-
+            const isToday = date.toDateString() === now.toDateString();
             const dayLabel = isToday
                 ? "Today"
-                : date.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short' });
-            return `${dayLabel}, ${formatClock(date)} IST`;
+                : date.toLocaleDateString([], { day: "numeric", month: "short" });
+            return `${dayLabel}, ${formatClock(date)}`;
         }
 
         // --- Load + group messages into conversations --------------------
         async function loadMessages() {
-            const token = localStorage.getItem(AUTH_TOKEN_KEY);
+            const token = sessionStorage.getItem(AUTH_TOKEN_KEY);
             if (!token) return;
 
             try {
@@ -336,7 +320,7 @@
                     headers: { "Authorization": `Bearer ${token}` }
                 });
                 if (r.status === 401) {
-                    localStorage.clear();
+                    sessionStorage.clear();
                     checkAuth();
                     return;
                 }
@@ -411,7 +395,7 @@
                     </div>
                     <div class="min-w-0 flex-1">
                         <div class="flex items-center justify-between">
-                            <span class="text-sm font-bold text-slate-800 code-font truncate">${conv.contact}</span>
+                            <span class="text-sm font-bold text-slate-800 code-font truncate">${escapeHtml(conv.contact)}</span>
                             <span class="text-[10px] text-slate-500 font-medium shrink-0 ml-2">${formatListTimestamp(conv.lastMessage.time)}</span>
                         </div>
                         <p class="text-xs text-slate-500 truncate mt-0.5">${statusPrefix}${escapeHtml(conv.lastMessage.text)}</p>
@@ -518,7 +502,7 @@
         });
 
         async function sendMessage(to, text) {
-            const token = localStorage.getItem(AUTH_TOKEN_KEY);
+            const token = sessionStorage.getItem(AUTH_TOKEN_KEY);
             if (!token) return;
 
             try {
@@ -532,7 +516,7 @@
                 });
 
                 if (r.status === 401) {
-                    localStorage.clear();
+                    sessionStorage.clear();
                     checkAuth();
                     return;
                 }
@@ -548,7 +532,7 @@
 
         // Register poll interval to keep the UI reactive every 7 seconds
         setInterval(() => {
-            const token = localStorage.getItem(AUTH_TOKEN_KEY);
+            const token = sessionStorage.getItem(AUTH_TOKEN_KEY);
             if (token) loadMessages();
         }, 7000);
     </script>
