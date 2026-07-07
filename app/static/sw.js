@@ -1,4 +1,4 @@
-const CACHE_NAME = "sms-gateway-v1";
+const CACHE_NAME = "sms-integrator-v1";
 const ASSETS = [
   "/",
   "/admin",

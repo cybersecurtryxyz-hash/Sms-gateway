@@ -41,7 +41,7 @@ def check_admin_auth(req):
 
 
 def check_device_auth(req):
-    """Android gateway devices authenticate via HTTP Basic auth."""
+    """Android integrator devices authenticate via HTTP Basic auth."""
     auth_header = req.headers.get("Authorization")
     if not auth_header or not auth_header.startswith("Basic "):
         return False

@@ -128,7 +128,7 @@ def init_db():
                 """,
                 (
                     "node1",
-                    "Realme 9 Gateway Node",
+                    "Realme 9 Integrator Node",
                     "85%",
                     "1.1",
                     "Never",

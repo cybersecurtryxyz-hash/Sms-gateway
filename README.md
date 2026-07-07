@@ -1,9 +1,9 @@
-# SMS Gateway - Cloud Control Panel & Router
+# SMS Integrator - Cloud Control Panel & Router
 
-This is a modern, modular, production-grade Python Flask backend for the **SMS Gateway** system. It provides:
+This is a modern, modular, production-grade Python Flask backend for the **SMS Integrator** system. It provides:
 1. **Admin Console (`/admin`)**: Monitor node heartbeats (battery, status, last-seen, version), manage authorized coworker accounts, and audit all incoming/outgoing messages.
-2. **Coworker Portal (`/`)**: A sleek PWA dashboard where coworkers can log in, send outgoing SMS through your company gateway node, and view their personal message threads.
-3. **Gateway Router APIs (`/api/v1`)**: Handles secure polling, status callbacks, and duplicate message routing for the Android client node.
+2. **Coworker Portal (`/`)**: A sleek PWA dashboard where coworkers can log in, send outgoing SMS through your company integrator node, and view their personal message threads.
+3. **Integrator Router APIs (`/api/v1`)**: Handles secure polling, status callbacks, and duplicate message routing for the Android client node.
 
 ---
 

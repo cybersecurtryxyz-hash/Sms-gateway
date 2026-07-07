@@ -1,7 +1,7 @@
 {
-  "name": "SMS Gateway Coworker Portal",
-  "short_name": "SMS Gateway",
-  "description": "Send bulk SMS via company Android gateway nodes",
+  "name": "SMS Integrator Coworker Portal",
+  "short_name": "SMS Integrator",
+  "description": "Send bulk SMS via company Android integrator nodes",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0F172A",
