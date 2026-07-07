@@ -50,8 +50,14 @@ def create_app():
         response.headers["Referrer-Policy"] = "same-origin"
         response.headers.setdefault(
             "Content-Security-Policy",
-            "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; "
-            "script-src 'self' 'unsafe-inline';",
+            "default-src 'self'; "
+            "img-src 'self' data:; "
+            # Tailwind's CDN build (used by admin.html/app.html) generates
+            # CSS via a <script> tag - it must be explicitly allowlisted or
+            # the whole UI renders unstyled (this bit us once already).
+            "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "font-src https://fonts.gstatic.com;",
         )
         return response
 
