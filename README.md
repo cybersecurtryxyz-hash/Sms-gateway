@@ -1,8 +1,8 @@
 # SMS Integrator - Cloud Control Panel & Router
 
 This is a modern, modular, production-grade Python Flask backend for the **SMS Integrator** system. It provides:
-1. **Admin Console (`/admin`)**: Monitor node heartbeats (battery, status, last-seen, version), manage authorized coworker accounts, and audit all incoming/outgoing messages.
-2. **Coworker Portal (`/`)**: A sleek PWA dashboard where coworkers can log in, send outgoing SMS through your company integrator node, and view their personal message threads.
+1. **Admin Console (`/admin`)**: Monitor node heartbeats (battery, status, last-seen, version), manage authorized user accounts, and audit all incoming/outgoing messages.
+2. **User Portal (`/`)**: A sleek PWA dashboard where users can log in, send outgoing SMS through your company integrator node, and view their personal message threads.
 3. **Integrator Router APIs (`/api/v1`)**: Handles secure polling, status callbacks, and duplicate message routing for the Android client node.
 
 ---
@@ -26,7 +26,7 @@ This is a modern, modular, production-grade Python Flask backend for the **SMS I
    ```bash
    python run.py
    ```
-   Open `http://127.0.0.1:5000` for Coworkers or `http://127.0.0.1:5000/admin` for the Admin Console!
+   Open `http://127.0.0.1:5000` for Users or `http://127.0.0.1:5000/admin` for the Admin Console!
 
 ---
 
@@ -65,5 +65,5 @@ This is a modern, modular, production-grade Python Flask backend for the **SMS I
 
 ## 🔒 Security Architecture
 - **Admin**: Auths via `X-Admin-Password` matching the salted bcrypt hash of your admin password stored in SQLite.
-- **Coworkers**: Auths via secure, lightweight Bearer tokens generated upon credentials match.
+- **Users**: Auths via secure, lightweight Bearer tokens generated upon credentials match.
 - **Android Device Node**: Auths via HTTP Basic Auth containing your `DEVICE_TOKEN`.

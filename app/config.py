@@ -1,28 +1,76 @@
 import os
+import secrets
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# These are the well-known defaults that used to ship in source control.
+# They must NEVER be accepted as real secrets in production.
+_INSECURE_DEFAULTS = {
+    "admin123",
+    "smsgateway_secret_token_123",
+    "sms_gateway_fallback_secret_key_123456789",
+}
 
 
 class Config:
     """
     Central configuration. Everything sensitive is read from the environment
-    so no secrets ever live in source control. Sensible dev fallbacks are
-    provided but a real deployment should always set these explicitly.
+    so no secrets ever live in source control.
+
+    In production (FLASK_ENV != "development") these secrets are REQUIRED:
+    if they are missing, blank, too short, or match an old insecure default,
+    the app refuses to start (see Config.validate()). Failing loudly at boot
+    is much safer than silently running with a guessable/public secret.
+
+    In development, missing secrets fall back to random, per-process values
+    (regenerated every restart) purely so local testing doesn't need a .env
+    file. These dev values are never persisted.
     """
 
     # --- Database ---------------------------------------------------
     DATABASE_PATH = os.environ.get("DATABASE_PATH")  # explicit override wins
 
-    # --- Secrets ------------------------------------------------------
-    # Falls back to a dev-only value with a loud warning at boot time
-    ADMIN_PASSWORD_DEFAULT = os.environ.get("ADMIN_PASSWORD", "admin123")
-    DEVICE_TOKEN = os.environ.get("DEVICE_TOKEN", "smsgateway_secret_token_123")
-    MY_NUMBER = os.environ.get("MY_NUMBER", "+91-98765-43210")
-    SECRET_KEY = os.environ.get("SECRET_KEY", "sms_gateway_fallback_secret_key_123456789")
-
     # --- Misc -----------------------------------------------------
     ENV = os.environ.get("FLASK_ENV", "production")
     DEBUG = ENV == "development"
+
+    # --- Secrets ------------------------------------------------------
+    # Random per-process fallback used ONLY in development mode, so we never
+    # fall back to a hardcoded string sitting in a public repo.
+    _dev_fallback = secrets.token_urlsafe(32)
+
+    ADMIN_PASSWORD_DEFAULT = os.environ.get("ADMIN_PASSWORD") or (_dev_fallback if DEBUG else "")
+    DEVICE_TOKEN = os.environ.get("DEVICE_TOKEN") or (_dev_fallback if DEBUG else "")
+    MY_NUMBER = os.environ.get("MY_NUMBER", "+91-98765-43210")
+    SECRET_KEY = os.environ.get("SECRET_KEY") or (_dev_fallback if DEBUG else "")
+
+    @classmethod
+    def validate(cls):
+        """
+        Called once at app startup. Raises RuntimeError (crashing the boot)
+        if running in production without properly configured secrets.
+        """
+        if cls.DEBUG:
+            return  # dev mode already has random per-process fallbacks
+
+        problems = []
+        for name in ("ADMIN_PASSWORD", "DEVICE_TOKEN", "SECRET_KEY"):
+            value = os.environ.get(name)
+            if not value:
+                problems.append(f"{name} is not set")
+            elif value in _INSECURE_DEFAULTS:
+                problems.append(f"{name} is set to a known insecure default value")
+            elif len(value) < 12:
+                problems.append(f"{name} is too short (use at least 12 random characters)")
+
+        if problems:
+            raise RuntimeError(
+                "Refusing to start in production with insecure configuration:\n  - "
+                + "\n  - ".join(problems)
+                + "\nSet these as real, random environment variables "
+                "(e.g. `python -c \"import secrets; print(secrets.token_urlsafe(32))\"`) "
+                "before deploying. To run locally instead, set FLASK_ENV=development."
+            )
 
     @staticmethod
     def resolve_db_path():

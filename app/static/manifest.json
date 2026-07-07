@@ -1,5 +1,5 @@
 {
-  "name": "SMS Integrator Coworker Portal",
+  "name": "SMS Integrator User Portal",
   "short_name": "SMS Integrator",
   "description": "Send bulk SMS via company Android integrator nodes",
   "start_url": "/",
