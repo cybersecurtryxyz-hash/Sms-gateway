@@ -7,6 +7,7 @@ from werkzeug.security import generate_password_hash
 from ..db import get_db
 from ..security import check_admin_auth, verify_admin_password, set_admin_password
 from ..config import Config
+from ..extensions import limiter
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/api/admin")
 
@@ -19,6 +20,7 @@ def _require_admin():
 
 
 @admin_bp.route("/login", methods=["POST"])
+@limiter.limit("5 per minute; 30 per hour")
 def admin_login():
     data = request.json or {}
     if verify_admin_password(data.get("password")):
@@ -27,6 +29,7 @@ def admin_login():
 
 
 @admin_bp.route("/change-password", methods=["POST"])
+@limiter.limit("10 per minute")
 def admin_change_password():
     if (err := _require_admin()) is not None:
         return err
@@ -57,7 +60,7 @@ def admin_status():
                 "battery": "0%",
                 "version": "1.0",
                 "last_seen": "Never",
-                "secret_token": Config.DEVICE_TOKEN,
+                "secret_token": _mask_token(Config.DEVICE_TOKEN),
             }
         )
 
@@ -77,11 +80,19 @@ def admin_status():
             "battery": row["battery"],
             "version": row["version"],
             "last_seen": row["last_seen"],
-            # Always the live DEVICE_TOKEN env var - this is what the server
-            # actually checks, so the dashboard can never show a stale value.
-            "secret_token": Config.DEVICE_TOKEN,
+            # Masked - the dashboard only needs to confirm which token is
+            # configured, never to display it in full over the network.
+            "secret_token": _mask_token(Config.DEVICE_TOKEN),
         }
     )
+
+
+def _mask_token(token):
+    """Show only the last 4 characters, e.g. '********ab12'. Never send the
+    full device secret to the browser - it's a credential, not display data."""
+    if not token:
+        return ""
+    return "*" * 8 + token[-4:]
 
 
 @admin_bp.route("/users", methods=["GET", "POST"])
