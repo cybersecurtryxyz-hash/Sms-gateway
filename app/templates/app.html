@@ -285,33 +285,45 @@
             }
         }
 
+        function getIstDayString(date) {
+            return date.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' });
+        }
+
         function formatClock(date) {
-            return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+            return date.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: 'numeric', minute: '2-digit', hour12: true });
         }
 
         function formatListTimestamp(str) {
             const date = parseServerTime(str);
             if (!date) return "";
             const now = new Date();
-            const isToday = date.toDateString() === now.toDateString();
-            const yesterday = new Date(now);
-            yesterday.setDate(now.getDate() - 1);
-            const isYesterday = date.toDateString() === yesterday.toDateString();
+            
+            const istDateStr = getIstDayString(date);
+            const istNowStr = getIstDayString(now);
+            const isToday = (istDateStr === istNowStr);
+            
+            const yesterday = new Date(now.getTime() - 86400000);
+            const istYesterdayStr = getIstDayString(yesterday);
+            const isYesterday = (istDateStr === istYesterdayStr);
 
             if (isToday) return formatClock(date);
             if (isYesterday) return "Yesterday";
-            return date.toLocaleDateString([], { day: "numeric", month: "short" });
+            return date.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short' });
         }
 
         function formatBubbleTimestamp(str) {
             const date = parseServerTime(str);
             if (!date) return "";
             const now = new Date();
-            const isToday = date.toDateString() === now.toDateString();
+            
+            const istDateStr = getIstDayString(date);
+            const istNowStr = getIstDayString(now);
+            const isToday = (istDateStr === istNowStr);
+
             const dayLabel = isToday
                 ? "Today"
-                : date.toLocaleDateString([], { day: "numeric", month: "short" });
-            return `${dayLabel}, ${formatClock(date)}`;
+                : date.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short' });
+            return `${dayLabel}, ${formatClock(date)} IST`;
         }
 
         // --- Load + group messages into conversations --------------------
