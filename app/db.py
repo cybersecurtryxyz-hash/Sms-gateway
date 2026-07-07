@@ -60,7 +60,8 @@ def init_db():
                 username TEXT PRIMARY KEY,
                 name TEXT NOT NULL,
                 password_hash TEXT NOT NULL,
-                role TEXT DEFAULT 'coworker'
+                role TEXT DEFAULT 'coworker',
+                allowed_numbers TEXT DEFAULT '*'
             )
             """
         )
@@ -82,6 +83,12 @@ def init_db():
         # Safe migration for DBs created before the `owner` column existed
         try:
             cursor.execute("ALTER TABLE messages ADD COLUMN owner TEXT")
+        except sqlite3.OperationalError:
+            pass  # column already exists
+
+        # Safe migration for allowed_numbers column
+        try:
+            cursor.execute("ALTER TABLE users ADD COLUMN allowed_numbers TEXT DEFAULT '*'")
         except sqlite3.OperationalError:
             pass  # column already exists
 

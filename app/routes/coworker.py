@@ -74,6 +74,30 @@ def coworker_send_sms():
         return jsonify({"error": "Receiver and message are required"}), 400
 
     conn = get_db()
+    
+    # Fetch user's allowed_numbers restriction
+    user_row = conn.execute("SELECT allowed_numbers FROM users WHERE username = ?", (username,)).fetchone()
+    if not user_row:
+        conn.close()
+        return jsonify({"error": "User profile not found"}), 404
+        
+    allowed_numbers = user_row["allowed_numbers"] or "*"
+    recipient_normalized = to.strip()
+    
+    is_allowed = False
+    if allowed_numbers.strip() == "*":
+        is_allowed = True
+    else:
+        allowed_list = [item.strip() for item in allowed_numbers.split(",") if item.strip()]
+        for pattern in allowed_list:
+            if recipient_normalized == pattern or recipient_normalized.startswith(pattern):
+                is_allowed = True
+                break
+                
+    if not is_allowed:
+        conn.close()
+        return jsonify({"error": f"Access Denied: You are not authorized to send messages to {to}."}), 403
+
     msg_id = f"MSG-{int(time.time() * 1000)}"
     time_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
 
