@@ -6,7 +6,6 @@ from flask import Blueprint, request, jsonify
 from ..db import get_db
 from ..security import verify_coworker_password, generate_token, verify_token, get_bearer_token
 from ..config import Config
-from ..extensions import limiter
 
 coworker_bp = Blueprint("coworker", __name__, url_prefix="/api")
 
@@ -20,7 +19,6 @@ def _require_coworker():
 
 
 @coworker_bp.route("/login", methods=["POST"])
-@limiter.limit("5 per minute; 30 per hour")
 def coworker_login():
     data = request.json or {}
     username = data.get("username")

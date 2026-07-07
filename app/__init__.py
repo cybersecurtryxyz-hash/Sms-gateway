@@ -5,7 +5,6 @@ from flask import Flask
 
 from .config import Config
 from .db import init_db
-from .extensions import limiter
 from .routes import pages_bp, admin_bp, coworker_bp, device_bp
 
 
@@ -19,18 +18,16 @@ def create_app():
     )
     logger = logging.getLogger(__name__)
 
-    # Fail fast rather than silently booting with a guessable admin
-    # password / device token / signing key in production.
-    Config.validate()
-
-    if Config.DEBUG:
+    if not os.environ.get("ADMIN_PASSWORD"):
         logger.warning(
-            "Running in DEVELOPMENT mode with randomly generated, "
-            "non-persistent secrets. Never use FLASK_ENV=development in "
-            "production."
+            "ADMIN_PASSWORD is not set - using an insecure default. "
+            "Set it before deploying to production."
         )
-
-    limiter.init_app(app)
+    if not os.environ.get("DEVICE_TOKEN"):
+        logger.warning(
+            "DEVICE_TOKEN is not set - using an insecure default. "
+            "Set it before deploying to production."
+        )
 
     with app.app_context():
         init_db()
@@ -39,20 +36,5 @@ def create_app():
     app.register_blueprint(admin_bp)
     app.register_blueprint(coworker_bp)
     app.register_blueprint(device_bp)
-
-    @app.after_request
-    def set_security_headers(response):
-        # Defense-in-depth: even though templates now escape all
-        # user-controlled data, these headers reduce the blast radius of
-        # any future XSS/clickjacking/mime-sniffing issue.
-        response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["X-Frame-Options"] = "DENY"
-        response.headers["Referrer-Policy"] = "same-origin"
-        response.headers.setdefault(
-            "Content-Security-Policy",
-            "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; "
-            "script-src 'self' 'unsafe-inline';",
-        )
-        return response
 
     return app

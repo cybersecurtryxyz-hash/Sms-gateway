@@ -6,14 +6,8 @@ from flask import Blueprint, request, jsonify
 from ..db import get_db
 from ..security import check_device_auth
 from ..config import Config
-from ..extensions import limiter
 
 device_bp = Blueprint("device", __name__, url_prefix="/api")
-
-# The legitimate device polls every ~15s (4/min) and reports status/incoming
-# messages occasionally, so this limit comfortably covers normal traffic
-# while still bounding how fast an attacker can brute-force the device token.
-_DEVICE_RATE_LIMIT = "30 per minute"
 
 
 def _require_device():
@@ -49,7 +43,6 @@ def _touch_heartbeat(conn, time_str, battery=None):
 
 @device_bp.route("/v1/device/messages", methods=["GET"])
 @device_bp.route("/v1/messages", methods=["GET"])
-@limiter.limit(_DEVICE_RATE_LIMIT)
 def device_poll_messages():
     if (err := _require_device()) is not None:
         return err
@@ -82,7 +75,6 @@ def device_poll_messages():
 
 @device_bp.route("/v1/device/messages/<message_id>/status", methods=["POST"])
 @device_bp.route("/v1/messages/status", methods=["POST"])
-@limiter.limit(_DEVICE_RATE_LIMIT)
 def device_report_status(message_id=None):
     if (err := _require_device()) is not None:
         return err
@@ -112,7 +104,6 @@ def device_report_status(message_id=None):
 
 
 @device_bp.route("/v1/incoming", methods=["POST"])
-@limiter.limit(_DEVICE_RATE_LIMIT)
 def device_incoming_message():
     # Strictly enforce device authentication to prevent spoofing or unauthorized messages
     if (err := _require_device()) is not None:

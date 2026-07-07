@@ -246,7 +246,7 @@
 
         // Initialization auth checks
         function initAdminAuth() {
-            const savedPw = sessionStorage.getItem(ADMIN_PASS_KEY);
+            const savedPw = localStorage.getItem(ADMIN_PASS_KEY);
             if (savedPw) {
                 testAdminAuth(savedPw);
             } else {
@@ -268,11 +268,11 @@
                     body: JSON.stringify({ password })
                 });
                 if (r.ok) {
-                    sessionStorage.setItem(ADMIN_PASS_KEY, password);
+                    localStorage.setItem(ADMIN_PASS_KEY, password);
                     divAuth.classList.add("hidden");
                     runConsole();
                 } else {
-                    sessionStorage.removeItem(ADMIN_PASS_KEY);
+                    localStorage.removeItem(ADMIN_PASS_KEY);
                     divAuth.classList.remove("hidden");
                     authError.textContent = "Incorrect admin password. Access denied.";
                 }
@@ -282,7 +282,7 @@
         }
 
         document.getElementById("btn-admin-logout").addEventListener("click", () => {
-            sessionStorage.removeItem(ADMIN_PASS_KEY);
+            localStorage.removeItem(ADMIN_PASS_KEY);
             location.reload();
         });
 
@@ -307,7 +307,7 @@
 
         // Fetch Device Status from Server
         async function loadDeviceStatus() {
-            const pw = sessionStorage.getItem(ADMIN_PASS_KEY);
+            const pw = localStorage.getItem(ADMIN_PASS_KEY);
             try {
                 const r = await fetch("/api/admin/status", {
                     headers: { "X-Admin-Password": pw }
@@ -340,7 +340,7 @@
 
         // Fetch User Database
         async function loadUsers() {
-            const pw = sessionStorage.getItem(ADMIN_PASS_KEY);
+            const pw = localStorage.getItem(ADMIN_PASS_KEY);
             try {
                 const r = await fetch("/api/admin/users", {
                     headers: { "X-Admin-Password": pw }
@@ -353,62 +353,31 @@
             }
         }
 
-        // Escapes text for safe insertion as HTML content. Used everywhere
-        // we build markup out of server/user-controlled data (usernames,
-        // names, SMS sender/text/etc.) to prevent stored XSS.
-        function escapeHtml(str) {
-            const div = document.createElement("div");
-            div.textContent = str == null ? "" : String(str);
-            return div.innerHTML;
-        }
-
         function renderUsers(users) {
             const container = document.getElementById("users-list");
             container.innerHTML = "";
             users.forEach(u => {
-                // Built via DOM APIs (textContent) rather than innerHTML +
-                // string interpolation, and event handlers are wired with
-                // addEventListener rather than inline onclick="...", so a
-                // malicious username/name can never break out into HTML or
-                // JS context.
-                const card = document.createElement("div");
-                card.className = "inner-dark-card p-3.5 rounded-xl space-y-2.5 shadow-sm hover:border-blue-700/20 transition-all";
-
-                const topRow = document.createElement("div");
-                topRow.className = "flex items-center justify-between";
-
-                const info = document.createElement("div");
-                const nameEl = document.createElement("div");
-                nameEl.className = "text-xs font-bold text-slate-800";
-                nameEl.textContent = u.name;
-                const userEl = document.createElement("div");
-                userEl.className = "text-[10px] text-blue-700 font-bold code-font mt-0.5";
-                userEl.textContent = "@" + u.username;
-                info.append(nameEl, userEl);
-
-                const removeBtn = document.createElement("button");
-                removeBtn.className = "text-rose-600 hover:bg-rose-50 px-2.5 py-1 rounded text-[10px] font-extrabold transition";
-                removeBtn.textContent = "Remove";
-                removeBtn.addEventListener("click", () => deleteUser(u.username));
-
-                topRow.append(info, removeBtn);
-
-                const bottomRow = document.createElement("div");
-                bottomRow.className = "flex items-center justify-between text-[10px] bg-slate-50 p-2 rounded border border-slate-100";
-                const label = document.createElement("span");
-                label.className = "text-slate-500";
-                label.textContent = "Password set at creation time";
-                const copyBtn = document.createElement("button");
-                copyBtn.className = "text-blue-700 hover:text-blue-600 font-extrabold";
-                copyBtn.textContent = "Copy";
-                copyBtn.addEventListener("click", () => {
-                    navigator.clipboard.writeText(u.username);
-                    alert("Username copied!");
-                });
-                bottomRow.append(label, copyBtn);
-
-                card.append(topRow, bottomRow);
-                container.appendChild(card);
+                // Note: passwords are stored as salted hashes and are never
+                // returned by the API, so only the username is copyable here.
+                container.innerHTML += `
+                    <div class="inner-dark-card p-3.5 rounded-xl space-y-2.5 shadow-sm hover:border-blue-700/20 transition-all">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="text-xs font-bold text-slate-800">${u.name}</div>
+                                <div class="text-[10px] text-blue-700 font-bold code-font mt-0.5">@${u.username}</div>
+                            </div>
+                            <button onclick="deleteUser('${u.username}')" class="text-rose-600 hover:bg-rose-50 px-2.5 py-1 rounded text-[10px] font-extrabold transition">
+                                Remove
+                            </button>
+                        </div>
+                        <div class="flex items-center justify-between text-[10px] bg-slate-50 p-2 rounded border border-slate-100">
+                            <span class="text-slate-500">Password set at creation time</span>
+                            <button onclick="navigator.clipboard.writeText('${u.username}'); alert('Username copied!')" class="text-blue-700 hover:text-blue-600 font-extrabold">
+                                Copy
+                            </button>
+                        </div>
+                    </div>
+                `;
             });
         }
 
@@ -418,7 +387,7 @@
             const username = document.getElementById("new-user-username").value.trim();
             const name = document.getElementById("new-user-name").value.trim();
             const password = document.getElementById("new-user-pass").value.trim();
-            const pw = sessionStorage.getItem(ADMIN_PASS_KEY);
+            const pw = localStorage.getItem(ADMIN_PASS_KEY);
 
             try {
                 const r = await fetch("/api/admin/users", {
@@ -446,7 +415,7 @@
         document.getElementById("form-change-admin-pass").addEventListener("submit", async (e) => {
             e.preventDefault();
             const newPassword = document.getElementById("new-admin-password").value.trim();
-            const pw = sessionStorage.getItem(ADMIN_PASS_KEY);
+            const pw = localStorage.getItem(ADMIN_PASS_KEY);
             const msgEl = document.getElementById("change-admin-pass-msg");
             msgEl.textContent = "";
 
@@ -465,7 +434,7 @@
                 if (r.ok) {
                     msgEl.className = "text-xs text-center mt-2 font-medium text-emerald-400";
                     msgEl.textContent = "Admin password updated successfully!";
-                    sessionStorage.setItem(ADMIN_PASS_KEY, newPassword);
+                    localStorage.setItem(ADMIN_PASS_KEY, newPassword);
                     document.getElementById("new-admin-password").value = "";
                 } else {
                     msgEl.className = "text-xs text-center mt-2 font-medium text-rose-500";
@@ -479,7 +448,7 @@
 
         async function deleteUser(username) {
             if (!confirm(`Are you sure you want to remove user @${username}? This cannot be undone.`)) return;
-            const pw = sessionStorage.getItem(ADMIN_PASS_KEY);
+            const pw = localStorage.getItem(ADMIN_PASS_KEY);
             try {
                 const r = await fetch(`/api/admin/users/${username}`, {
                     method: "DELETE",
@@ -493,7 +462,7 @@
 
         // Fetch Global Message logs
         async function loadMessages() {
-            const pw = sessionStorage.getItem(ADMIN_PASS_KEY);
+            const pw = localStorage.getItem(ADMIN_PASS_KEY);
             try {
                 const r = await fetch("/api/admin/messages", {
                     headers: { "X-Admin-Password": pw }
@@ -536,20 +505,13 @@
                     statusBadge = `<span class="text-rose-600 font-bold">● Failed</span>`;
                 }
 
-                // IMPORTANT: m.sender / m.text come straight from an incoming
-                // SMS body, which is attacker-controlled (anyone who can text
-                // the gateway's number can set this). They MUST be escaped
-                // before going into innerHTML, or a crafted SMS becomes a
-                // stored XSS payload that runs in this authenticated admin
-                // page. dirBadge/statusBadge are safe - built from fixed
-                // strings above, never from message content.
                 tbody.innerHTML += `
                     <tr class="hover:bg-slate-50 transition border-b border-slate-100">
                         <td class="py-3.5 pr-2">${dirBadge}</td>
-                        <td class="py-3.5 font-bold text-slate-600">${escapeHtml(m.sender)}</td>
-                        <td class="py-3.5 text-slate-800 font-semibold code-font">${escapeHtml(m.recipient)}</td>
-                        <td class="py-3.5 pr-4 text-slate-700 font-medium break-all max-w-xs">${escapeHtml(m.text)}</td>
-                        <td class="py-3.5 text-slate-500 font-medium whitespace-nowrap">${escapeHtml(m.time)}</td>
+                        <td class="py-3.5 font-bold text-slate-600">${m.sender}</td>
+                        <td class="py-3.5 text-slate-800 font-semibold code-font">${m.recipient}</td>
+                        <td class="py-3.5 pr-4 text-slate-700 font-medium break-all max-w-xs">${m.text}</td>
+                        <td class="py-3.5 text-slate-500 font-medium whitespace-nowrap">${m.time}</td>
                         <td class="py-3.5">${statusBadge}</td>
                     </tr>
                 `;

@@ -219,15 +219,15 @@
 
         // Initialization check
         function checkAuth() {
-            const token = sessionStorage.getItem(AUTH_TOKEN_KEY);
+            const token = localStorage.getItem(AUTH_TOKEN_KEY);
             if (!token) {
                 screenLogin.classList.remove("hidden");
                 screenDashboard.classList.add("hidden");
             } else {
                 screenLogin.classList.add("hidden");
                 screenDashboard.classList.remove("hidden");
-                document.getElementById("user-display-name").textContent = "@" + (sessionStorage.getItem(USERNAME_KEY) || "user");
-                document.getElementById("integrator-sim-label").textContent = sessionStorage.getItem(SIM_LABEL_KEY) || "Active Node";
+                document.getElementById("user-display-name").textContent = "@" + (localStorage.getItem(USERNAME_KEY) || "user");
+                document.getElementById("integrator-sim-label").textContent = localStorage.getItem(SIM_LABEL_KEY) || "Active Node";
                 showPanel(panelEmpty);
                 loadMessages();
             }
@@ -254,10 +254,10 @@
                     return;
                 }
 
-                sessionStorage.setItem(AUTH_TOKEN_KEY, res.token);
-                sessionStorage.setItem(USERNAME_KEY, res.username);
-                sessionStorage.setItem(DISPLAY_NAME_KEY, res.name);
-                sessionStorage.setItem(SIM_LABEL_KEY, res.my_number);
+                localStorage.setItem(AUTH_TOKEN_KEY, res.token);
+                localStorage.setItem(USERNAME_KEY, res.username);
+                localStorage.setItem(DISPLAY_NAME_KEY, res.name);
+                localStorage.setItem(SIM_LABEL_KEY, res.my_number);
 
                 checkAuth();
             } catch (err) {
@@ -267,7 +267,7 @@
 
         // Logout
         document.getElementById("btn-logout").addEventListener("click", () => {
-            sessionStorage.clear();
+            localStorage.clear();
             activeContact = null;
             checkAuth();
         });
@@ -312,7 +312,7 @@
 
         // --- Load + group messages into conversations --------------------
         async function loadMessages() {
-            const token = sessionStorage.getItem(AUTH_TOKEN_KEY);
+            const token = localStorage.getItem(AUTH_TOKEN_KEY);
             if (!token) return;
 
             try {
@@ -320,7 +320,7 @@
                     headers: { "Authorization": `Bearer ${token}` }
                 });
                 if (r.status === 401) {
-                    sessionStorage.clear();
+                    localStorage.clear();
                     checkAuth();
                     return;
                 }
@@ -395,7 +395,7 @@
                     </div>
                     <div class="min-w-0 flex-1">
                         <div class="flex items-center justify-between">
-                            <span class="text-sm font-bold text-slate-800 code-font truncate">${escapeHtml(conv.contact)}</span>
+                            <span class="text-sm font-bold text-slate-800 code-font truncate">${conv.contact}</span>
                             <span class="text-[10px] text-slate-500 font-medium shrink-0 ml-2">${formatListTimestamp(conv.lastMessage.time)}</span>
                         </div>
                         <p class="text-xs text-slate-500 truncate mt-0.5">${statusPrefix}${escapeHtml(conv.lastMessage.text)}</p>
@@ -502,7 +502,7 @@
         });
 
         async function sendMessage(to, text) {
-            const token = sessionStorage.getItem(AUTH_TOKEN_KEY);
+            const token = localStorage.getItem(AUTH_TOKEN_KEY);
             if (!token) return;
 
             try {
@@ -516,7 +516,7 @@
                 });
 
                 if (r.status === 401) {
-                    sessionStorage.clear();
+                    localStorage.clear();
                     checkAuth();
                     return;
                 }
@@ -532,7 +532,7 @@
 
         // Register poll interval to keep the UI reactive every 7 seconds
         setInterval(() => {
-            const token = sessionStorage.getItem(AUTH_TOKEN_KEY);
+            const token = localStorage.getItem(AUTH_TOKEN_KEY);
             if (token) loadMessages();
         }, 7000);
     </script>
