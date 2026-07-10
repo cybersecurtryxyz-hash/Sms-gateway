@@ -148,6 +148,23 @@ def admin_messages():
         return err
 
     conn = get_db()
-    rows = conn.execute("SELECT * FROM messages ORDER BY id DESC").fetchall()
+    rows = conn.execute("""
+        SELECT m.*, u.name AS owner_name 
+        FROM messages m 
+        LEFT JOIN users u ON m.owner = u.username 
+        ORDER BY m.id DESC
+    """).fetchall()
     conn.close()
-    return jsonify({"messages": [dict(r) for r in rows]})
+
+    messages = []
+    for r in rows:
+        d = dict(r)
+        if d.get("direction") == "in":
+            owner_display = d.get("owner_name") or d.get("owner")
+            if owner_display:
+                d["recipient"] = owner_display
+            else:
+                d["recipient"] = "System"
+        messages.append(d)
+
+    return jsonify({"messages": messages})
