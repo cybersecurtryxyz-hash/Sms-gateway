@@ -180,7 +180,6 @@
                         <input type="text" id="new-user-username" placeholder="Username (e.g. priya)" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-700/20 transition-all placeholder:text-slate-400">
                         <input type="text" id="new-user-name" placeholder="Full Display Name (e.g. Priya Sharma)" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-700/20 transition-all placeholder:text-slate-400">
                         <input type="password" id="new-user-pass" placeholder="Secret Password" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-700/20 transition-all placeholder:text-slate-400">
-                        <input type="text" id="new-user-allowed" placeholder="Allowed Numbers (e.g. 121, 123) or * for all" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-700/20 transition-all placeholder:text-slate-400" value="*">
                         <button type="submit" class="w-full bg-gradient-to-r from-blue-700 to-indigo-600 hover:from-blue-600 hover:to-indigo-500 py-2.5 rounded-xl font-bold text-xs text-white transition active:scale-[0.98] shadow-md shadow-blue-700/10">
                             Add User
                         </button>
@@ -416,53 +415,6 @@
 
                 topRow.append(info, removeBtn);
 
-                // Allowed Numbers inline config
-                const allowedSection = document.createElement("div");
-                allowedSection.className = "space-y-1 pt-1 border-t border-slate-100/60";
-                
-                const allowedLabel = document.createElement("label");
-                allowedLabel.className = "text-[9px] uppercase font-bold text-slate-500 tracking-wider block";
-                allowedLabel.textContent = "Allowed Numbers (e.g. 121,123 or *):";
-                
-                const allowedInputGroup = document.createElement("div");
-                allowedInputGroup.className = "flex gap-1.5";
-                
-                const allowedInput = document.createElement("input");
-                allowedInput.type = "text";
-                allowedInput.className = "bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[10px] text-slate-800 focus:outline-none focus:border-blue-700 flex-1";
-                allowedInput.placeholder = "e.g. 121, 123 or *";
-                allowedInput.value = u.allowed_numbers || "*";
-                
-                const allowedSaveBtn = document.createElement("button");
-                allowedSaveBtn.className = "bg-blue-700 hover:bg-blue-600 text-white font-bold text-[9px] px-2 py-1 rounded-lg transition active:scale-95 shrink-0";
-                allowedSaveBtn.textContent = "Save";
-                allowedSaveBtn.addEventListener("click", async () => {
-                    const newAllowed = allowedInput.value.trim();
-                    const pw = sessionStorage.getItem(ADMIN_PASS_KEY);
-                    try {
-                        const r = await fetch(`/api/admin/users/${u.username}/allowed-numbers`, {
-                            method: "POST",
-                            headers: { 
-                                "Content-Type": "application/json",
-                                "X-Admin-Password": pw
-                            },
-                            body: JSON.stringify({ allowed_numbers: newAllowed })
-                        });
-                        if (r.ok) {
-                            alert(`Allowed numbers updated for @${u.username}!`);
-                            loadUsers();
-                        } else {
-                            const d = await r.json();
-                            alert(d.error || "Failed to update permissions");
-                        }
-                    } catch (e) {
-                        alert("Network error updating allowed numbers");
-                    }
-                });
-                
-                allowedInputGroup.append(allowedInput, allowedSaveBtn);
-                allowedSection.append(allowedLabel, allowedInputGroup);
-
                 const bottomRow = document.createElement("div");
                 bottomRow.className = "flex items-center justify-between text-[10px] bg-slate-50 p-2 rounded border border-slate-100";
                 const label = document.createElement("span");
@@ -477,7 +429,7 @@
                 });
                 bottomRow.append(label, copyBtn);
 
-                card.append(topRow, allowedSection, bottomRow);
+                card.append(topRow, bottomRow);
                 container.appendChild(card);
             });
         }
@@ -488,7 +440,6 @@
             const username = document.getElementById("new-user-username").value.trim();
             const name = document.getElementById("new-user-name").value.trim();
             const password = document.getElementById("new-user-pass").value.trim();
-            const allowed_numbers = document.getElementById("new-user-allowed").value.trim();
             const pw = sessionStorage.getItem(ADMIN_PASS_KEY);
 
             try {
@@ -498,13 +449,12 @@
                         "Content-Type": "application/json",
                         "X-Admin-Password": pw
                     },
-                    body: JSON.stringify({ username, name, password, allowed_numbers })
+                    body: JSON.stringify({ username, name, password })
                 });
                 if (r.ok) {
                     document.getElementById("new-user-username").value = "";
                     document.getElementById("new-user-name").value = "";
                     document.getElementById("new-user-pass").value = "";
-                    document.getElementById("new-user-allowed").value = "*";
                     loadUsers();
                 } else {
                     const d = await r.json();

@@ -103,7 +103,7 @@ def admin_users():
 
     conn = get_db()
     if request.method == "GET":
-        rows = conn.execute("SELECT username, name, role, allowed_numbers FROM users").fetchall()
+        rows = conn.execute("SELECT username, name, role FROM users").fetchall()
         conn.close()
         return jsonify({"users": [dict(r) for r in rows]})
 
@@ -111,10 +111,6 @@ def admin_users():
     username = data.get("username", "").strip()
     name = data.get("name", "").strip()
     password = data.get("password", "").strip()
-    allowed_numbers = data.get("allowed_numbers", "*").strip()
-
-    if not allowed_numbers:
-        allowed_numbers = "*"
 
     if not username or not name or not password:
         conn.close()
@@ -122,8 +118,8 @@ def admin_users():
 
     try:
         conn.execute(
-            "INSERT INTO users (username, name, password_hash, allowed_numbers) VALUES (?, ?, ?, ?)",
-            (username, name, generate_password_hash(password), allowed_numbers),
+            "INSERT INTO users (username, name, password_hash) VALUES (?, ?, ?)",
+            (username, name, generate_password_hash(password)),
         )
         conn.commit()
     except sqlite3.IntegrityError:
@@ -131,26 +127,6 @@ def admin_users():
     finally:
         conn.close()
 
-    return jsonify({"success": True}), 200
-
-
-@admin_bp.route("/users/<username>/allowed-numbers", methods=["POST"])
-def admin_update_allowed_numbers(username):
-    if (err := _require_admin()) is not None:
-        return err
-
-    data = request.json or {}
-    allowed_numbers = data.get("allowed_numbers", "*").strip()
-    if not allowed_numbers:
-        allowed_numbers = "*"
-
-    conn = get_db()
-    conn.execute(
-        "UPDATE users SET allowed_numbers = ? WHERE username = ?",
-        (allowed_numbers, username)
-    )
-    conn.commit()
-    conn.close()
     return jsonify({"success": True}), 200
 
 
