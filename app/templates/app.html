@@ -343,6 +343,27 @@
             return digits.length >= 10 ? digits.slice(-10) : digits;
         }
 
+        function extractFirstPhone(text) {
+            if (!text) return null;
+            // 1. Prioritize MOB prefix matching to prevent collision with other metadata like IMEI, VLR, IMSI, Request ID
+            const mobRegex = /MOB\s*[:\-]?\s*(\d{10,15})/i;
+            const mobMatch = mobRegex.exec(text);
+            if (mobMatch && mobMatch[1]) {
+                return normalizePhone(mobMatch[1]);
+            }
+            
+            // 2. Standard number extraction
+            const regex = /(?:\+?91[\s-]?|0)?(\d{4,15})/g;
+            let match;
+            while ((match = regex.exec(text)) !== null) {
+                const norm = normalizePhone(match[1]);
+                if (norm && norm.length >= 4) {
+                    return norm;
+                }
+            }
+            return null;
+        }
+
         function groupByContact(messages) {
             const groups = {};
             messages.forEach(m => {
@@ -434,8 +455,55 @@
                 .slice()
                 .reverse();
 
-            threadMessages.innerHTML = "";
+            // Interleave/group incoming replies under their corresponding outgoing query messages
+            const queryMap = []; // Array of { msg: m, phone: string, replies: [] }
+            const renderedList = []; // final structured list
+
             msgs.forEach(m => {
+                if (m.direction === "out") {
+                    const phone = extractFirstPhone(m.text);
+                    const qObj = { msg: m, phone: phone, replies: [] };
+                    queryMap.push(qObj);
+                    renderedList.push(qObj);
+                } else {
+                    // Incoming reply
+                    const phone = extractFirstPhone(m.text);
+                    // Find the best matching query (closest preceding query with matching phone number)
+                    let matchedQuery = null;
+                    if (phone) {
+                        for (let i = queryMap.length - 1; i >= 0; i--) {
+                            const q = queryMap[i];
+                            if (q.phone === phone) {
+                                matchedQuery = q;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (matchedQuery) {
+                        matchedQuery.replies.push(m);
+                    } else {
+                        // Unmatched incoming message, render it independently
+                        renderedList.push({ msg: m, phone: phone, replies: [], isUnmatchedReply: true });
+                    }
+                }
+            });
+
+            // Flatten the structured list so replies are placed directly below their matched query
+            const flatMsgs = [];
+            renderedList.forEach(item => {
+                if (item.isUnmatchedReply) {
+                    flatMsgs.push(item.msg);
+                } else {
+                    flatMsgs.push(item.msg);
+                    item.replies.forEach(r => {
+                        flatMsgs.push(r);
+                    });
+                }
+            });
+
+            threadMessages.innerHTML = "";
+            flatMsgs.forEach(m => {
                 const isMine = m.direction === "out";
                 const containerClass = isMine ? "self-end items-end" : "self-start items-start";
 
@@ -455,7 +523,7 @@
 
                 const bubbleHtml = `
                     <div class="max-w-[75%] flex flex-col ${containerClass}">
-                        <div class="px-3.5 py-2.5 rounded-2xl text-sm font-medium leading-relaxed break-all ${bubbleColor}">
+                        <div class="px-3.5 py-2.5 rounded-2xl text-sm font-medium leading-relaxed break-all whitespace-pre-wrap ${bubbleColor}">
                             ${escapeHtml(m.text)}
                         </div>
                         <div class="flex items-center space-x-1.5 mt-1 text-[10px] text-slate-500 px-1 font-semibold">
