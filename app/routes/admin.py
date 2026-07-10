@@ -152,7 +152,7 @@ def admin_messages():
         SELECT m.*, u.name AS owner_name 
         FROM messages m 
         LEFT JOIN users u ON m.owner = u.username 
-        ORDER BY m.id DESC
+        ORDER BY m.time DESC, m.id DESC
     """).fetchall()
     conn.close()
 

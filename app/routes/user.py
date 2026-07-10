@@ -53,7 +53,7 @@ def user_inbox():
     # Only this user's own sent messages and replies routed to them -
     # users should never see each other's conversations.
     rows = conn.execute(
-        "SELECT * FROM messages WHERE owner = ? ORDER BY id DESC LIMIT 200",
+        "SELECT * FROM messages WHERE owner = ? ORDER BY time DESC, id DESC LIMIT 200",
         (username,),
     ).fetchall()
     conn.close()
