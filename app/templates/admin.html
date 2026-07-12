@@ -528,36 +528,6 @@
 
         document.getElementById("btn-refresh-logs").addEventListener("click", loadMessages);
 
-        function formatOperatorReply(text) {
-            if (!text) return text;
-            // Check if it's an operator reply containing key metadata
-            if (!text.includes("CGI") && !text.includes("VLR") && !text.includes("IMSI") && !text.includes("IME")) {
-                return text;
-            }
-            
-            let formatted = text;
-            
-            // First, clean up multiple spaces
-            formatted = formatted.replace(/\s+/g, " ");
-            
-            // Define the keywords we want to put on a new line
-            const keywords = [
-                "MOB", "L\\.\\s*Act\\.", "CGI", "VLR", "IME", "IMSI", 
-                "Lat", "Long", "https?://maps\\.google\\.com/maps\\S*", "LBS\\s*Type", "Request\\s*ID", "Request"
-            ];
-            
-            // Extract any leading standalone number (e.g. 8437106666 at the start) and put a newline after it
-            formatted = formatted.replace(/^(\d{8,15})\s+/, "$1\n");
-            
-            // For each keyword, if it's preceded by a space, replace that space with a newline
-            keywords.forEach(kw => {
-                const regex = new RegExp(`\\s+(${kw})`, "gi");
-                formatted = formatted.replace(regex, "\n$1");
-            });
-            
-            return formatted;
-        }
-
         function renderMessages(messages) {
             const tbody = document.getElementById("logs-tbody");
             tbody.innerHTML = "";
@@ -600,7 +570,7 @@
                         <td class="py-3.5 pr-2">${dirBadge}</td>
                         <td class="py-3.5 font-bold text-slate-600">${escapeHtml(m.sender)}</td>
                         <td class="py-3.5 text-slate-800 font-semibold code-font">${escapeHtml(m.recipient)}</td>
-                        <td class="py-3.5 pr-4 text-slate-700 font-medium break-all whitespace-pre-wrap max-w-xs">${escapeHtml(formatOperatorReply(m.text))}</td>
+                        <td class="py-3.5 pr-4 text-slate-700 font-medium break-all whitespace-pre-wrap max-w-xs">${escapeHtml(m.text)}</td>
                         <td class="py-3.5 text-slate-500 font-medium whitespace-nowrap">${escapeHtml(formatServerTime(m.time))}</td>
                         <td class="py-3.5">${statusBadge}</td>
                     </tr>
