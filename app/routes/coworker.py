@@ -40,7 +40,7 @@ def coworker_login():
             ),
             200,
         )
-    return jsonify({"error": "Invalid coworker credentials"}), 401
+    return jsonify({"error": "Invalid user credentials"}), 401
 
 
 @coworker_bp.route("/inbox", methods=["GET"])
