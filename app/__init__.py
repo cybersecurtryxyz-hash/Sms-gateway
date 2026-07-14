@@ -51,12 +51,15 @@ def create_app():
         response.headers.setdefault(
             "Content-Security-Policy",
             "default-src 'self'; "
-            "img-src 'self' data:; "
-            # Tailwind's CDN build (used by admin.html/app.html) generates
-            # CSS via a <script> tag - it must be explicitly allowlisted or
-            # the whole UI renders unstyled (this bit us once already).
-            "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; "
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "img-src 'self' data: https://*.tile.openstreetmap.org; "
+            # Tailwind is now compiled locally at build time (see
+            # app/static/css/tailwind.css) instead of the Play CDN, so it
+            # no longer needs a script-src allowance or network access at
+            # all - this also fixes styling for users whose network/ISP/
+            # extensions blocked cdn.tailwindcss.com.
+            # unpkg.com is Leaflet's map JS/CSS (used by app.html).
+            "script-src 'self' 'unsafe-inline' https://unpkg.com; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; "
             "font-src https://fonts.gstatic.com;",
         )
         return response
