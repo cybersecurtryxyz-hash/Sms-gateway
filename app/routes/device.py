@@ -60,7 +60,7 @@ def device_poll_messages():
     conn.commit()
 
     rows = conn.execute(
-        "SELECT id, recipient, text, sender FROM messages WHERE status='queued' AND direction='out'"
+        "SELECT id, recipient, text, sender, sim_operator FROM messages WHERE status='queued' AND direction='out'"
     ).fetchall()
     conn.close()
 
@@ -72,6 +72,7 @@ def device_poll_messages():
                     "recipient": r["recipient"],
                     "message": r["text"],
                     "sender": r["sender"],
+                    "sim_operator": r["sim_operator"] or "",
                 }
                 for r in rows
             ]

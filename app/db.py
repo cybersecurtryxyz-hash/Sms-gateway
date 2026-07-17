@@ -76,13 +76,20 @@ def init_db():
                 text TEXT NOT NULL,
                 time TEXT NOT NULL,
                 status TEXT NOT NULL,
-                owner TEXT
+                owner TEXT,
+                sim_operator TEXT
             )
             """
         )
         # Safe migration for DBs created before the `owner` column existed
         try:
             cursor.execute("ALTER TABLE messages ADD COLUMN owner TEXT")
+        except sqlite3.OperationalError:
+            pass  # column already exists
+
+        # Safe migration for DBs created before the `sim_operator` column existed
+        try:
+            cursor.execute("ALTER TABLE messages ADD COLUMN sim_operator TEXT")
         except sqlite3.OperationalError:
             pass  # column already exists
 
@@ -114,6 +121,31 @@ def init_db():
             )
             """
         )
+
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS gateway_numbers (
+                phone_number TEXT PRIMARY KEY,
+                operator_name TEXT NOT NULL,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+
+        cursor.execute("SELECT COUNT(*) FROM gateway_numbers")
+        if cursor.fetchone()[0] == 0:
+            cursor.execute(
+                "INSERT INTO gateway_numbers (phone_number, operator_name) VALUES (?, ?)",
+                ("8800112112", "Airtel")
+            )
+            cursor.execute(
+                "INSERT INTO gateway_numbers (phone_number, operator_name) VALUES (?, ?)",
+                ("7021265165", "Jio")
+            )
+            cursor.execute(
+                "INSERT INTO gateway_numbers (phone_number, operator_name) VALUES (?, ?)",
+                ("7824834221", "Vodafone idea")
+            )
 
         # Delete default coworkers if they exist from previous template runs to ensure clean state
         cursor.execute("DELETE FROM users WHERE username IN ('priya', 'rahul')")
