@@ -2,9 +2,11 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Install dependencies (backend/requirements.txt has the full set,
-# including Flask-Limiter which the app needs at import time)
-COPY backend/requirements.txt ./requirements.txt
+# Install dependencies (root requirements.txt mirrors backend/requirements.txt
+# and includes Flask-Limiter which the app needs at import time). Using the
+# root file here avoids a build failure if backend/ hasn't been pushed to
+# the repo yet.
+COPY requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the project
