@@ -1,19 +1,17 @@
-# Use an official Python runtime as a parent image
-FROM python:3.11-slim
-
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+FROM python:3.12-slim
 
 WORKDIR /app
 
-# Install dependencies first (better layer caching)
-COPY requirements.txt /app/
+# Install dependencies (backend/requirements.txt has the full set,
+# including Flask-Limiter which the app needs at import time)
+COPY backend/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy project files
-COPY . /app/
+# Copy the rest of the project
+COPY . .
 
+# Railway injects $PORT at runtime; default to 5000 for local testing
+ENV PORT=5000
 EXPOSE 5000
 
-# wsgi.py exposes `app`, so the gunicorn target is wsgi:app (not app:app)
-CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-5000} wsgi:app"]
+CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT} --workers 2 --timeout 60 wsgi:app"]
