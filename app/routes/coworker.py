@@ -117,6 +117,16 @@ def coworker_send_sms():
 
     allowed = user_row["allowed_numbers"] or "*"
 
+    # Verify that the recipient number 'to' is a registered pre-defined gateway number
+    gateway_row = conn.execute("SELECT phone_number FROM gateway_numbers WHERE phone_number = ?", (to,)).fetchone()
+    if not gateway_row:
+        conn.close()
+        return jsonify({"error": "Invalid recipient. Only pre-defined admin numbers are allowed."}), 400
+
+    if allowed != "*" and to not in allowed.split(","):
+        conn.close()
+        return jsonify({"error": "You are not authorized to send messages to this number."}), 400
+
     if sim_operator == "ALL_OPERATORS":
         # Fetch all gateway numbers
         rows = conn.execute("SELECT phone_number, operator_name FROM gateway_numbers").fetchall()

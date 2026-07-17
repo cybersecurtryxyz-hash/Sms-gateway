@@ -199,6 +199,35 @@
 
             </div>
 
+            <!-- Pre-defined Telecom Numbers Section -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <!-- Add Pre-defined Telecom Number -->
+                <section class="glass-card rounded-2xl p-6 shadow-xl">
+                    <div class="flex items-center gap-2 mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-blue-700"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                        <h2 class="text-xs font-extrabold text-blue-700 uppercase tracking-widest">Add Telecom Number</h2>
+                    </div>
+                    <form id="form-add-number" class="space-y-3">
+                        <input type="text" id="new-num-phone" placeholder="Phone Number (e.g. 8800112112)" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-700/20 transition-all placeholder:text-slate-400">
+                        <input type="text" id="new-num-operator" placeholder="Telecom Operator Name (e.g. Airtel)" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-700/20 transition-all placeholder:text-slate-400">
+                        <button type="submit" class="w-full bg-gradient-to-r from-blue-700 to-indigo-600 hover:from-blue-600 hover:to-indigo-500 py-2.5 rounded-xl font-bold text-xs text-white transition active:scale-[0.98] shadow-md shadow-blue-700/10">
+                            Add Pre-defined Number
+                        </button>
+                    </form>
+                </section>
+
+                <!-- Pre-defined Numbers List -->
+                <section class="glass-card rounded-2xl p-6 shadow-xl flex flex-col">
+                    <div class="flex items-center gap-2 mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-blue-700"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="22" y2="7"/><line x1="2" y1="17" x2="22" y2="17"/></svg>
+                        <h2 class="text-xs font-extrabold text-blue-700 uppercase tracking-widest">Pre-defined Telecom Numbers</h2>
+                    </div>
+                    <div id="numbers-list" class="space-y-2 max-h-[260px] overflow-y-auto pr-1 flex-1">
+                        <!-- Numbers injected here -->
+                    </div>
+                </section>
+            </div>
+
             <!-- Live Global Message Log Feed -->
             <section class="glass-card rounded-2xl p-6 shadow-xl flex flex-col h-[560px]">
                 <div class="flex justify-between items-center mb-6">
@@ -320,6 +349,7 @@
         function runConsole() {
             loadDeviceStatus();
             loadUsers();
+            loadNumbers();
             loadMessages();
 
             // Set running intervals
@@ -359,6 +389,96 @@
                 console.error("Failed to read device health:", e);
             }
         }
+
+        // Fetch Pre-defined Numbers
+        async function loadNumbers() {
+            const pw = sessionStorage.getItem(ADMIN_PASS_KEY);
+            try {
+                const r = await fetch("/api/admin/numbers", {
+                    headers: { "X-Admin-Password": pw }
+                });
+                if (!r.ok) return;
+                const d = await r.json();
+                renderNumbers(d.numbers || []);
+            } catch (e) {
+                console.error("Numbers list error:", e);
+            }
+        }
+
+        function renderNumbers(numbers) {
+            const container = document.getElementById("numbers-list");
+            if (!container) return;
+            container.innerHTML = "";
+            numbers.forEach(num => {
+                const card = document.createElement("div");
+                card.className = "inner-dark-card p-3 rounded-xl flex items-center justify-between shadow-sm hover:border-blue-700/20 transition-all";
+
+                const info = document.createElement("div");
+                const opEl = document.createElement("div");
+                opEl.className = "text-xs font-bold text-slate-800";
+                opEl.textContent = num.operator_name;
+                const phoneEl = document.createElement("div");
+                phoneEl.className = "text-[10px] text-blue-700 font-bold code-font mt-0.5";
+                phoneEl.textContent = num.phone_number;
+                info.append(opEl, phoneEl);
+
+                const deleteBtn = document.createElement("button");
+                deleteBtn.className = "text-rose-600 hover:bg-rose-50 px-2.5 py-1 rounded text-[10px] font-extrabold transition";
+                deleteBtn.textContent = "Delete";
+                deleteBtn.addEventListener("click", () => deleteNumber(num.phone_number));
+
+                card.append(info, deleteBtn);
+                container.appendChild(card);
+            });
+        }
+
+        async function deleteNumber(phoneNumber) {
+            if (!confirm(`Are you sure you want to delete ${phoneNumber}?`)) return;
+            const pw = sessionStorage.getItem(ADMIN_PASS_KEY);
+            try {
+                const r = await fetch(`/api/admin/numbers/${phoneNumber}`, {
+                    method: "DELETE",
+                    headers: { "X-Admin-Password": pw }
+                });
+                if (r.ok) {
+                    loadNumbers();
+                } else {
+                    const d = await r.json();
+                    alert(d.error || "Failed to delete number");
+                }
+            } catch (e) {
+                alert("Network communication error");
+            }
+        }
+
+        // Add Number submit handler
+        document.getElementById("form-add-number").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const phone = document.getElementById("new-num-phone").value.trim();
+            const operator = document.getElementById("new-num-operator").value.trim();
+            const pw = sessionStorage.getItem(ADMIN_PASS_KEY);
+
+            try {
+                const r = await fetch("/api/admin/numbers", {
+                    method: "POST",
+                    headers: { 
+                        "Content-Type": "application/json",
+                        "X-Admin-Password": pw
+                    },
+                    body: JSON.stringify({ phone_number: phone, operator_name: operator })
+                });
+                if (r.ok) {
+                    document.getElementById("new-num-phone").value = "";
+                    document.getElementById("new-num-operator").value = "";
+                    loadNumbers();
+                } else {
+                    const d = await r.json();
+                    alert(d.error || "Failed to add number");
+                }
+            } catch (e) {
+                alert("Network communication error");
+            }
+        });
 
         // Fetch User Database
         async function loadUsers() {
@@ -433,9 +553,54 @@
                 });
                 bottomRow.append(label, copyBtn);
 
-                card.append(topRow, bottomRow);
+                const allowedRow = document.createElement("div");
+                allowedRow.className = "space-y-1 mt-1.5";
+                const allowedLabel = document.createElement("label");
+                allowedLabel.className = "text-[10px] text-slate-500 font-bold block";
+                allowedLabel.textContent = "Allowed Telecom Numbers (* for all):";
+                
+                const allowedInputGroup = document.createElement("div");
+                allowedInputGroup.className = "flex gap-1.5";
+                
+                const allowedInput = document.createElement("input");
+                allowedInput.type = "text";
+                allowedInput.className = "bg-white border border-slate-200 rounded px-2 py-1 text-[11px] text-slate-800 flex-1 focus:outline-none focus:border-blue-700 font-semibold";
+                allowedInput.value = u.allowed_numbers || "*";
+                
+                const updateBtn = document.createElement("button");
+                updateBtn.className = "bg-blue-50 text-blue-700 border border-blue-100 hover:bg-blue-100 font-bold px-2.5 py-1 rounded text-[10px] transition shrink-0";
+                updateBtn.textContent = "Save";
+                updateBtn.addEventListener("click", () => updateUserAllowedNumbers(u.username, allowedInput.value));
+                
+                allowedInputGroup.append(allowedInput, updateBtn);
+                allowedRow.append(allowedLabel, allowedInputGroup);
+
+                card.append(topRow, allowedRow, bottomRow);
                 container.appendChild(card);
             });
+        }
+
+        async function updateUserAllowedNumbers(username, allowedNumbers) {
+            const pw = sessionStorage.getItem(ADMIN_PASS_KEY);
+            try {
+                const r = await fetch(`/api/admin/users/${username}`, {
+                    method: "PUT",
+                    headers: { 
+                        "Content-Type": "application/json",
+                        "X-Admin-Password": pw
+                    },
+                    body: JSON.stringify({ allowed_numbers: allowedNumbers })
+                });
+                if (r.ok) {
+                    alert("User allowed numbers updated successfully!");
+                    loadUsers();
+                } else {
+                    const d = await r.json();
+                    alert(d.error || "Failed to update user");
+                }
+            } catch (err) {
+                alert("Network communication error");
+            }
         }
 
         // Submit User addition
