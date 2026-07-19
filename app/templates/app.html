@@ -98,9 +98,15 @@
                         <span id="user-display-name" class="text-[10px] text-blue-700 font-extrabold tracking-widest uppercase ml-1.5 px-1.5 py-0.5 rounded bg-blue-50 border border-blue-100 shadow-sm">Loading...</span>
                     </div>
                 </div>
-                <button id="btn-logout" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 font-bold text-xs px-3.5 py-2 rounded-lg transition-all active:scale-95">
-                    Logout
-                </button>
+                <div class="flex items-center gap-2">
+                    <button id="btn-export-csv" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3.5 py-2 rounded-lg transition-all active:scale-95 flex items-center gap-1.5 shadow-sm shadow-emerald-600/10">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        Export Excel
+                    </button>
+                    <button id="btn-logout" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 font-bold text-xs px-3.5 py-2 rounded-lg transition-all active:scale-95">
+                        Logout
+                    </button>
+                </div>
             </div>
         </nav>
 
@@ -353,6 +359,46 @@
             checkAuth();
         });
 
+        // Export CSV
+        const btnExport = document.getElementById("btn-export-csv");
+        if (btnExport) {
+            btnExport.addEventListener("click", async () => {
+                const token = sessionStorage.getItem(AUTH_TOKEN_KEY);
+                if (!token) return;
+
+                btnExport.disabled = true;
+                btnExport.classList.add("opacity-50");
+                const originalText = btnExport.innerHTML;
+                btnExport.innerHTML = "Exporting...";
+
+                try {
+                    const response = await fetch("/api/export", {
+                        headers: { "Authorization": `Bearer ${token}` }
+                    });
+                    if (!response.ok) {
+                        alert("Failed to export data");
+                        return;
+                    }
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.style.display = "none";
+                    a.href = url;
+                    a.download = `sms_export_${sessionStorage.getItem(USERNAME_KEY) || 'user'}.csv`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                } catch (err) {
+                    console.error("Export failed", err);
+                    alert("Error exporting data");
+                } finally {
+                    btnExport.disabled = false;
+                    btnExport.classList.remove("opacity-50");
+                    btnExport.innerHTML = originalText;
+                }
+            });
+        }
+
         // --- Date / time formatting -------------------------------------
         function parseServerTime(str) {
             if (!str) return null;
@@ -467,6 +513,13 @@
             }
             
             return null;
+        }
+
+        function extractLinks(text) {
+            if (!text) return [];
+            // Regex to find standard HTTP/HTTPS links
+            const linkRegex = /(https?:\/\/[^\s]+)/gi;
+            return text.match(linkRegex) || [];
         }
 
         function formatOperatorReply(text) {
@@ -701,10 +754,29 @@
                     mapInitializers.push({ divId: mapDivId, coords: coords });
                 }
 
+                // Extract separate links and make them clickable buttons (especially for incoming operator responses)
+                let linksHtml = "";
+                if (!isMine) {
+                    const links = extractLinks(m.text);
+                    if (links.length > 0) {
+                        linksHtml = links.map(link => {
+                            return `
+                                <div class="mt-2.5" onclick="event.stopPropagation();">
+                                    <a href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 bg-white hover:bg-slate-50 border border-slate-200 text-blue-700 hover:text-blue-800 font-extrabold px-3 py-2 rounded-xl text-xs transition shadow-sm">
+                                        <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                        Open Map Link
+                                    </a>
+                                </div>
+                            `;
+                        }).join("");
+                    }
+                }
+
                 const bubbleHtml = `
                     <div class="max-w-[75%] flex flex-col ${containerClass}">
                         <div class="px-3.5 py-2.5 rounded-2xl text-sm font-medium leading-relaxed break-all whitespace-pre-wrap ${bubbleColor}">
                             ${escapeHtml(formattedText)}
+                            ${linksHtml}
                             ${mapHtml}
                         </div>
                         <div class="flex items-center space-x-1.5 mt-1 text-[10px] text-slate-500 px-1 font-semibold">

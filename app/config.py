@@ -1,5 +1,6 @@
 import os
 import secrets
+import time
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -9,19 +10,37 @@ def _get_persistent_fallback():
     # we persist the generated fallback key in a shared file (/tmp/.sms_gateway_fallback).
     # Since all processes run on the same instance, they will share the same fallback key.
     fallback_file = "/tmp/.sms_gateway_fallback"
-    try:
-        if os.path.exists(fallback_file):
-            with open(fallback_file, "r") as f:
-                val = f.read().strip()
-                if len(val) >= 32:
-                    return val
-    except Exception:
-        pass
+    
+    # Attempt to read existing key first
+    for _ in range(5):
+        try:
+            if os.path.exists(fallback_file):
+                with open(fallback_file, "r") as f:
+                    val = f.read().strip()
+                    if len(val) >= 32:
+                        return val
+        except Exception:
+            pass
+        time.sleep(0.1)
 
     val = secrets.token_urlsafe(32)
     try:
-        with open(fallback_file, "w") as f:
+        # Atomic file creation using O_CREAT | O_EXCL to prevent concurrent write races
+        fd = os.open(fallback_file, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+        with os.fdopen(fd, "w") as f:
             f.write(val)
+        return val
+    except FileExistsError:
+        # Another worker process created the file concurrently, read it
+        for _ in range(10):
+            try:
+                with open(fallback_file, "r") as f:
+                    read_val = f.read().strip()
+                    if len(read_val) >= 32:
+                        return read_val
+            except Exception:
+                pass
+            time.sleep(0.1)
     except Exception:
         pass
     return val

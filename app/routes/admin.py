@@ -1,7 +1,9 @@
 import sqlite3
+import io
+import csv
 from datetime import datetime, timezone
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, Response
 from werkzeug.security import generate_password_hash
 
 from ..db import get_db
@@ -184,6 +186,54 @@ def admin_messages():
         messages.append(d)
 
     return jsonify({"messages": messages})
+
+
+@admin_bp.route("/export", methods=["GET"])
+def admin_export_messages():
+    if (err := _require_admin()) is not None:
+        return err
+
+    conn = get_db()
+    rows = conn.execute("""
+        SELECT m.*, u.name AS owner_name 
+        FROM messages m 
+        LEFT JOIN users u ON m.owner = u.username 
+        ORDER BY m.time DESC, m.id DESC
+    """).fetchall()
+    conn.close()
+
+    output = io.StringIO()
+    writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
+    writer.writerow([
+        "ID", "Direction", "Sender", "Recipient", 
+        "Message Text", "Timestamp", "Status", "Owner", "SIM Operator"
+    ])
+
+    for r in rows:
+        direction_label = "Outgoing" if r["direction"] == "out" else "Incoming"
+        recipient_display = r["recipient"]
+        if r["direction"] == "in":
+            owner_display = r["owner_name"] or r["owner"]
+            recipient_display = owner_display if owner_display else "System"
+
+        writer.writerow([
+            r["id"],
+            direction_label,
+            r["sender"],
+            recipient_display,
+            r["text"],
+            r["time"],
+            r["status"],
+            r["owner"] or "",
+            r["sim_operator"] or ""
+        ])
+
+    csv_data = "\ufeff" + output.getvalue()
+    return Response(
+        csv_data,
+        mimetype="text/csv; charset=utf-8",
+        headers={"Content-disposition": "attachment; filename=sms_export_admin.csv"}
+    )
 
 
 @admin_bp.route("/numbers", methods=["GET", "POST"])

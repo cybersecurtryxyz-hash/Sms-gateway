@@ -11,8 +11,12 @@ _db_path = None  # resolved lazily, cached after first successful connection
 
 
 def _try_connect(path):
-    conn = sqlite3.connect(path)
+    conn = sqlite3.connect(path, timeout=30.0)
     conn.row_factory = sqlite3.Row
+    try:
+        conn.execute("PRAGMA journal_mode=WAL")
+    except Exception:
+        pass
     # Write test to make sure the location is actually usable
     conn.execute("CREATE TABLE IF NOT EXISTS _write_test (id INTEGER)")
     conn.execute("DROP TABLE _write_test")
@@ -26,24 +30,27 @@ def get_db():
     resolved path -> /tmp -> in-memory, logging each fallback.
     """
     global _db_path
-    if _db_path is None:
-        _db_path = Config.resolve_db_path()
+    target_path = _db_path or Config.resolve_db_path()
 
+    # Try original target path
     try:
-        return _try_connect(_db_path)
+        conn = _try_connect(target_path)
+        _db_path = target_path  # Cache successful connection path
+        return conn
     except Exception as e:
-        logger.warning("Database at %s is not writable: %s", _db_path, e)
+        logger.warning("Database at %s is not writable: %s", target_path, e)
 
-    if _db_path != "/tmp/sms_gateway.db":
+    # Try /tmp fallback
+    if target_path != "/tmp/sms_gateway.db":
         try:
-            _db_path = "/tmp/sms_gateway.db"
-            return _try_connect(_db_path)
+            conn = _try_connect("/tmp/sms_gateway.db")
+            _db_path = "/tmp/sms_gateway.db"  # Cache successful fallback path
+            return conn
         except Exception as e:
             logger.warning("Fallback to /tmp failed: %s", e)
 
-    logger.warning("Falling back to in-memory SQLite database")
-    _db_path = ":memory:"
-    conn = sqlite3.connect(_db_path)
+    logger.warning("Falling back to transient in-memory SQLite database for this connection")
+    conn = sqlite3.connect(":memory:", timeout=30.0)
     conn.row_factory = sqlite3.Row
     return conn
 

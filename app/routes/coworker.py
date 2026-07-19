@@ -1,7 +1,9 @@
 import time
+import io
+import csv
 from datetime import datetime, timezone
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, Response
 
 from ..db import get_db
 from ..security import verify_coworker_password, generate_token, verify_token, get_bearer_token
@@ -91,6 +93,48 @@ def coworker_inbox():
     ).fetchall()
     conn.close()
     return jsonify({"messages": [dict(r) for r in rows]})
+
+
+@coworker_bp.route("/export", methods=["GET"])
+def coworker_export_messages():
+    username, err = _require_coworker()
+    if err:
+        return err
+
+    conn = get_db()
+    # Query this coworker's own messages
+    rows = conn.execute(
+        "SELECT * FROM messages WHERE owner = ? ORDER BY time DESC, id DESC",
+        (username,),
+    ).fetchall()
+    conn.close()
+
+    output = io.StringIO()
+    writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
+    writer.writerow([
+        "ID", "Direction", "Sender", "Recipient", 
+        "Message Text", "Timestamp", "Status", "SIM Operator"
+    ])
+
+    for r in rows:
+        direction_label = "Outgoing" if r["direction"] == "out" else "Incoming"
+        writer.writerow([
+            r["id"],
+            direction_label,
+            r["sender"],
+            r["recipient"],
+            r["text"],
+            r["time"],
+            r["status"],
+            r["sim_operator"] or ""
+        ])
+
+    csv_data = "\ufeff" + output.getvalue()
+    return Response(
+        csv_data,
+        mimetype="text/csv; charset=utf-8",
+        headers={"Content-disposition": f"attachment; filename=sms_export_{username}.csv"}
+    )
 
 
 @coworker_bp.route("/send", methods=["POST"])

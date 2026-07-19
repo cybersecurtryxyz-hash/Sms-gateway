@@ -235,9 +235,15 @@
                         <h2 class="text-sm font-extrabold text-slate-900">Global Message Logs</h2>
                         <p class="text-xs text-slate-500 mt-0.5">Real-time incoming and outgoing SMS transmissions across your company node.</p>
                     </div>
-                    <button id="btn-refresh-logs" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/60 text-xs font-bold px-3.5 py-2 rounded-lg transition shrink-0 active:scale-95">
-                        Refresh Logs
-                    </button>
+                    <div class="flex items-center gap-2">
+                        <button id="btn-export-admin" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3.5 py-2 rounded-lg transition shrink-0 active:scale-95 flex items-center gap-1.5 shadow-sm shadow-emerald-600/10">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            Export Excel
+                        </button>
+                        <button id="btn-refresh-logs" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/60 text-xs font-bold px-3.5 py-2 rounded-lg transition shrink-0 active:scale-95">
+                            Refresh Logs
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Messages Log Table -->
@@ -696,6 +702,41 @@
         }
 
         document.getElementById("btn-refresh-logs").addEventListener("click", loadMessages);
+
+        document.getElementById("btn-export-admin").addEventListener("click", async () => {
+            const pw = sessionStorage.getItem(ADMIN_PASS_KEY);
+            const btn = document.getElementById("btn-export-admin");
+            btn.disabled = true;
+            btn.classList.add("opacity-50");
+            const originalText = btn.innerHTML;
+            btn.innerHTML = "Exporting...";
+
+            try {
+                const response = await fetch("/api/admin/export", {
+                    headers: { "X-Admin-Password": pw }
+                });
+                if (!response.ok) {
+                    alert("Failed to export data");
+                    return;
+                }
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.style.display = "none";
+                a.href = url;
+                a.download = "sms_export_admin.csv";
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+            } catch (err) {
+                console.error("Export failed", err);
+                alert("Error exporting data");
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove("opacity-50");
+                btn.innerHTML = originalText;
+            }
+        });
 
         function formatOperatorReply(text) {
             if (!text) return text;
