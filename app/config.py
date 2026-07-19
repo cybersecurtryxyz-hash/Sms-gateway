@@ -3,6 +3,30 @@ import secrets
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+
+def _get_persistent_fallback():
+    # To prevent multi-worker process token mismatches on Cloud Run or Gunicorn,
+    # we persist the generated fallback key in a shared file (/tmp/.sms_gateway_fallback).
+    # Since all processes run on the same instance, they will share the same fallback key.
+    fallback_file = "/tmp/.sms_gateway_fallback"
+    try:
+        if os.path.exists(fallback_file):
+            with open(fallback_file, "r") as f:
+                val = f.read().strip()
+                if len(val) >= 32:
+                    return val
+    except Exception:
+        pass
+
+    val = secrets.token_urlsafe(32)
+    try:
+        with open(fallback_file, "w") as f:
+            f.write(val)
+    except Exception:
+        pass
+    return val
+
+
 # These are the well-known defaults that used to ship in source control.
 # They must NEVER be accepted as real secrets in production.
 _INSECURE_DEFAULTS = {
@@ -37,7 +61,7 @@ class Config:
     # --- Secrets ------------------------------------------------------
     # Random per-process fallback used ONLY in development mode, so we never
     # fall back to a hardcoded string sitting in a public repo.
-    _dev_fallback = secrets.token_urlsafe(32)
+    _dev_fallback = _get_persistent_fallback()
 
     ADMIN_PASSWORD_DEFAULT = os.environ.get("ADMIN_PASSWORD") or (_dev_fallback if DEBUG else "")
     DEVICE_TOKEN = os.environ.get("DEVICE_TOKEN") or (_dev_fallback if DEBUG else "")
