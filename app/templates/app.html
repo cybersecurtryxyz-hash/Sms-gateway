@@ -179,12 +179,6 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Sender Sim Operator</label>
-                            <select id="new-conv-sim-operator" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 text-sm focus:outline-none focus:border-blue-700 transition">
-                                <!-- Populated dynamically -->
-                            </select>
-                        </div>
-                        <div>
                             <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Message</label>
                             <textarea id="new-conv-text" rows="4" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 text-sm focus:outline-none focus:border-blue-700 transition resize-none placeholder:text-slate-400" placeholder="Type your message..."></textarea>
                         </div>
@@ -783,9 +777,11 @@
             e.preventDefault();
             const to = document.getElementById("new-conv-to").value.trim();
             const text = document.getElementById("new-conv-text").value.trim();
-            const simSelect = document.getElementById("new-conv-sim-operator");
-            const simOperator = simSelect ? simSelect.value : "";
             if (!to || !text) return;
+
+            // Automatically match the operator name for the chosen recipient number
+            const matchedNum = allowedNumbers.find(n => n.phone_number === to);
+            const simOperator = matchedNum ? matchedNum.operator_name : "ALL_OPERATORS";
 
             await sendMessage(to, text, simOperator);
             openThread(to);
