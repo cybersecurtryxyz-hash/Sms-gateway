@@ -537,6 +537,19 @@
             btnExportUserLogs.addEventListener("click", () => runExport(btnExportUserLogs));
         }
 
+        // Converts a naive <input type="datetime-local"> value (interpreted
+        // by the browser as wall-clock time in the VIEWER's own timezone)
+        // into a "YYYY-MM-DD HH:MM:SS" string in UTC, ready for the backend,
+        // which stores/compares everything in UTC.
+        function localDatetimeToUtcString(localValue) {
+            // `new Date("2026-07-20T15:02")` (no trailing Z) is parsed by the
+            // browser as local time - exactly what we want here.
+            const d = new Date(localValue);
+            const pad = (n) => String(n).padStart(2, "0");
+            return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ` +
+                   `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`;
+        }
+
         // --- Date / time formatting -------------------------------------
         function parseServerTime(str) {
             if (!str) return null;
@@ -1062,13 +1075,21 @@
             const simOperator = matchedNum ? matchedNum.operator_name : "ALL_OPERATORS";
 
             if (searchMode === "scheduled") {
-                const startAt = document.getElementById("schedule-start").value;
-                const endAt = document.getElementById("schedule-end").value;
+                const startAtLocal = document.getElementById("schedule-start").value;
+                const endAtLocal = document.getElementById("schedule-end").value;
                 const frequencyMinutes = document.getElementById("schedule-frequency").value;
-                if (!startAt || !endAt) {
+                if (!startAtLocal || !endAtLocal) {
                     alert("Please pick both a start and end date/time for the scheduled search.");
                     return;
                 }
+                // <input type="datetime-local"> gives a naive wall-clock string
+                // (e.g. "2026-07-20T15:02") with NO timezone info - it means
+                // 15:02 in the viewer's own local timezone, not UTC. The backend
+                // stores and compares everything in UTC, so we must convert here
+                // before sending, or schedules end up off by the viewer's UTC
+                // offset (wrong displayed time AND firing hours late/early).
+                const startAt = localDatetimeToUtcString(startAtLocal);
+                const endAt = localDatetimeToUtcString(endAtLocal);
                 await createSchedule(to, text, simOperator, startAt, endAt, frequencyMinutes);
                 setSearchMode("onetime");
                 showPanel(activeContact ? panelThread : panelEmpty);
