@@ -110,8 +110,24 @@
             </div>
         </nav>
 
-        <!-- Content Workspace -->
-        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Tab Navigation Bar -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+            <div class="flex border-b border-slate-200">
+                <button id="tab-btn-chat" class="px-5 py-3 border-b-2 border-blue-700 text-blue-700 font-extrabold text-sm tracking-wide transition flex items-center gap-2 focus:outline-none">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+                    Chat View
+                </button>
+                <button id="tab-btn-logs" class="px-5 py-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 font-bold text-sm tracking-wide transition flex items-center gap-2 focus:outline-none">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                    Message Logs
+                </button>
+            </div>
+        </div>
+
+        <!-- Chat View Tab Panel -->
+        <div id="view-chat" class="block">
+            <!-- Content Workspace -->
+            <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
 
             <!-- Left: Conversations List -->
             <section class="lg:col-span-1 glass-card rounded-2xl shadow-xl flex flex-col h-[680px] overflow-hidden">
@@ -197,6 +213,56 @@
             </section>
 
         </main>
+        </div>
+
+        <!-- Message Logs Tab Panel -->
+        <div id="view-logs" class="hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+            <div class="glass-card rounded-2xl shadow-xl p-6 flex flex-col min-h-[580px] mb-8">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-5 border-b border-slate-200/60 gap-4 mb-6">
+                    <div>
+                        <h2 class="text-sm font-extrabold text-slate-900">Your Message Logs</h2>
+                        <p class="text-xs text-slate-500 mt-0.5">Real-time incoming and outgoing messages with operators, status, and replies.</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <!-- Search Bar -->
+                        <div class="relative min-w-[200px] sm:min-w-[250px]">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                            </span>
+                            <input type="text" id="logs-search" class="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-700 transition placeholder:text-slate-400" placeholder="Search number, message text, operator...">
+                        </div>
+                        <button id="btn-export-user-logs" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3.5 py-2 rounded-lg transition shrink-0 active:scale-95 flex items-center gap-1.5 shadow-sm shadow-emerald-600/10">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            Export Excel
+                        </button>
+                        <button id="btn-refresh-user-logs" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/60 text-xs font-bold px-3.5 py-2 rounded-lg transition shrink-0 active:scale-95 flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 4.79M9 9h9l-4-4"></path></svg>
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Messages Log Table Container -->
+                <div class="flex-1 overflow-x-auto overflow-y-auto max-h-[500px] pr-1">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="border-b border-slate-200 text-slate-500 font-extrabold uppercase tracking-wider text-left">
+                                <th class="pb-3.5 font-bold">Direction</th>
+                                <th class="pb-3.5 font-bold">Sender</th>
+                                <th class="pb-3.5 font-bold">Recipient</th>
+                                <th class="pb-3.5 font-bold">Message Text</th>
+                                <th class="pb-3.5 font-bold">Time</th>
+                                <th class="pb-3.5 font-bold">Telecom / SIM Operator</th>
+                                <th class="pb-3.5 font-bold">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="user-logs-tbody" class="divide-y divide-slate-100 font-medium text-slate-700">
+                            <!-- Dynamic rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Script Application Logic -->
@@ -208,6 +274,11 @@
 
         const screenLogin = document.getElementById("screen-login");
         const screenDashboard = document.getElementById("screen-dashboard");
+
+        const tabBtnChat = document.getElementById("tab-btn-chat");
+        const tabBtnLogs = document.getElementById("tab-btn-logs");
+        const viewChat = document.getElementById("view-chat");
+        const viewLogs = document.getElementById("view-logs");
 
         const formLogin = document.getElementById("form-login");
         const formSendThread = document.getElementById("form-send-thread");
@@ -360,43 +431,50 @@
         });
 
         // Export CSV
-        const btnExport = document.getElementById("btn-export-csv");
-        if (btnExport) {
-            btnExport.addEventListener("click", async () => {
-                const token = sessionStorage.getItem(AUTH_TOKEN_KEY);
-                if (!token) return;
+        async function runExport(btn) {
+            const token = sessionStorage.getItem(AUTH_TOKEN_KEY);
+            if (!token) return;
 
-                btnExport.disabled = true;
-                btnExport.classList.add("opacity-50");
-                const originalText = btnExport.innerHTML;
-                btnExport.innerHTML = "Exporting...";
+            btn.disabled = true;
+            btn.classList.add("opacity-50");
+            const originalText = btn.innerHTML;
+            btn.innerHTML = "Exporting...";
 
-                try {
-                    const response = await fetch("/api/export", {
-                        headers: { "Authorization": `Bearer ${token}` }
-                    });
-                    if (!response.ok) {
-                        alert("Failed to export data");
-                        return;
-                    }
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement("a");
-                    a.style.display = "none";
-                    a.href = url;
-                    a.download = `sms_export_${sessionStorage.getItem(USERNAME_KEY) || 'user'}.csv`;
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                } catch (err) {
-                    console.error("Export failed", err);
-                    alert("Error exporting data");
-                } finally {
-                    btnExport.disabled = false;
-                    btnExport.classList.remove("opacity-50");
-                    btnExport.innerHTML = originalText;
+            try {
+                const response = await fetch("/api/export", {
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+                if (!response.ok) {
+                    alert("Failed to export data");
+                    return;
                 }
-            });
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.style.display = "none";
+                a.href = url;
+                a.download = `sms_export_${sessionStorage.getItem(USERNAME_KEY) || 'user'}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+            } catch (err) {
+                console.error("Export failed", err);
+                alert("Error exporting data");
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove("opacity-50");
+                btn.innerHTML = originalText;
+            }
+        }
+
+        const btnExportCsv = document.getElementById("btn-export-csv");
+        if (btnExportCsv) {
+            btnExportCsv.addEventListener("click", () => runExport(btnExportCsv));
+        }
+
+        const btnExportUserLogs = document.getElementById("btn-export-user-logs");
+        if (btnExportUserLogs) {
+            btnExportUserLogs.addEventListener("click", () => runExport(btnExportUserLogs));
         }
 
         // --- Date / time formatting -------------------------------------
@@ -458,6 +536,9 @@
                 allMessages = data.messages || [];
                 renderConversations();
                 if (activeContact) renderThread(activeContact);
+                if (!viewLogs.classList.contains("hidden")) {
+                    renderUserLogsTable(document.getElementById("logs-search").value.trim());
+                }
             } catch (e) {
                 console.error("Failed to load message history:", e);
             }
@@ -884,6 +965,106 @@
                 alert("Failed to queue message. Check that the server is online.");
             }
         }
+
+        // --- Detailed Message Logs + Tab Switcher -------------------------
+        function renderUserLogsTable(filterText = "") {
+            const tbody = document.getElementById("user-logs-tbody");
+            if (!tbody) return;
+            tbody.innerHTML = "";
+
+            const query = filterText.toLowerCase();
+            const filtered = allMessages.filter(m => {
+                if (!query) return true;
+                const sender = (m.sender || "").toLowerCase();
+                const recipient = (m.recipient || "").toLowerCase();
+                const text = (m.text || "").toLowerCase();
+                const operator = (m.sim_operator || "").toLowerCase();
+                return sender.includes(query) || recipient.includes(query) || text.includes(query) || operator.includes(query);
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="py-12 text-center text-slate-500 font-medium">
+                            No matching messages found.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            filtered.forEach(m => {
+                const isOut = m.direction === 'out';
+                const dirBadge = isOut 
+                    ? `<span class="bg-blue-50 text-blue-700 border border-blue-100 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Outgoing</span>` 
+                    : `<span class="bg-emerald-50 text-emerald-700 border border-emerald-100 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Incoming</span>`;
+                
+                let statusBadge = "";
+                if (m.status === 'sent' || m.status === 'received' || m.status === 'delivered') {
+                    statusBadge = `<span class="text-emerald-600 font-bold">● Success</span>`;
+                } else if (m.status === 'queued') {
+                    statusBadge = `<span class="text-amber-600 font-bold animate-pulse">⚡ Sending...</span>`;
+                } else {
+                    statusBadge = `<span class="text-rose-600 font-bold">● Failed</span>`;
+                }
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                        <td class="py-3.5 pr-2">${dirBadge}</td>
+                        <td class="py-3.5 font-bold text-slate-600">${escapeHtml(m.sender)}</td>
+                        <td class="py-3.5 text-slate-800 font-semibold code-font">${escapeHtml(m.recipient)}</td>
+                        <td class="py-3.5 pr-4 text-slate-700 font-medium break-all whitespace-pre-wrap max-w-xs">${escapeHtml(formatOperatorReply(m.text))}</td>
+                        <td class="py-3.5 text-slate-500 font-medium whitespace-nowrap">${escapeHtml(formatBubbleTimestamp(m.time))}</td>
+                        <td class="py-3.5 text-slate-600 font-bold uppercase tracking-wider">${escapeHtml(m.sim_operator || "Unknown")}</td>
+                        <td class="py-3.5">${statusBadge}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        function switchTab(tab) {
+            if (tab === "chat") {
+                tabBtnChat.classList.add("border-blue-700", "text-blue-700", "font-extrabold");
+                tabBtnChat.classList.remove("border-transparent", "text-slate-500");
+                
+                tabBtnLogs.classList.add("border-transparent", "text-slate-500");
+                tabBtnLogs.classList.remove("border-blue-700", "text-blue-700", "font-extrabold");
+                
+                viewChat.classList.remove("hidden");
+                viewLogs.classList.add("hidden");
+            } else {
+                tabBtnLogs.classList.add("border-blue-700", "text-blue-700", "font-extrabold");
+                tabBtnLogs.classList.remove("border-transparent", "text-slate-500");
+                
+                tabBtnChat.classList.add("border-transparent", "text-slate-500");
+                tabBtnChat.classList.remove("border-blue-700", "text-blue-700", "font-extrabold");
+                
+                viewChat.classList.add("hidden");
+                viewLogs.classList.remove("hidden");
+                
+                renderUserLogsTable(document.getElementById("logs-search").value.trim());
+            }
+        }
+
+        tabBtnChat.addEventListener("click", () => switchTab("chat"));
+        tabBtnLogs.addEventListener("click", () => switchTab("logs"));
+
+        document.getElementById("logs-search").addEventListener("input", (e) => {
+            renderUserLogsTable(e.target.value.trim());
+        });
+
+        document.getElementById("btn-refresh-user-logs").addEventListener("click", async () => {
+            const btn = document.getElementById("btn-refresh-user-logs");
+            btn.disabled = true;
+            btn.classList.add("opacity-50");
+            const orig = btn.innerHTML;
+            btn.innerHTML = "Refreshing...";
+            await loadMessages();
+            renderUserLogsTable(document.getElementById("logs-search").value.trim());
+            btn.disabled = false;
+            btn.classList.remove("opacity-50");
+            btn.innerHTML = orig;
+        });
 
         // Check login on startup
         checkAuth();
