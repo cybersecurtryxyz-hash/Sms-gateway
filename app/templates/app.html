@@ -99,8 +99,8 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
-                    <button id="btn-export-csv" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3.5 py-2 rounded-lg transition-all active:scale-95 flex items-center gap-1.5 shadow-sm shadow-emerald-600/10">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    <button id="btn-export-csv" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3.5 py-2 rounded-lg transition-all active:scale-95 flex items-center gap-1.5 shadow-sm shadow-emerald-600/10 whitespace-nowrap" style="background-color: #059669 !important; color: #ffffff !important;">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="stroke: #ffffff !important;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                         Export Excel
                     </button>
                     <button id="btn-logout" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 font-bold text-xs px-3.5 py-2 rounded-lg transition-all active:scale-95">
@@ -120,6 +120,10 @@
                 <button id="tab-btn-logs" class="px-5 py-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 font-bold text-sm tracking-wide transition flex items-center gap-2 focus:outline-none">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
                     Message Logs
+                </button>
+                <button id="tab-btn-links" class="px-5 py-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 font-bold text-sm tracking-wide transition flex items-center gap-2 focus:outline-none">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                    Extracted Links
                 </button>
             </div>
         </div>
@@ -286,8 +290,8 @@
                             </span>
                             <input type="text" id="logs-search" class="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-700 transition placeholder:text-slate-400" placeholder="Search number, message text, operator...">
                         </div>
-                        <button id="btn-export-user-logs" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3.5 py-2 rounded-lg transition shrink-0 active:scale-95 flex items-center gap-1.5 shadow-sm shadow-emerald-600/10">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        <button id="btn-export-user-logs" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3.5 py-2 rounded-lg transition shrink-0 active:scale-95 flex items-center gap-1.5 shadow-sm shadow-emerald-600/10 whitespace-nowrap" style="background-color: #059669 !important; color: #ffffff !important;">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="stroke: #ffffff !important;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                             Export Excel
                         </button>
                         <button id="btn-refresh-user-logs" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/60 text-xs font-bold px-3.5 py-2 rounded-lg transition shrink-0 active:scale-95 flex items-center gap-1.5">
@@ -318,6 +322,55 @@
                 </div>
             </div>
         </div>
+
+        <!-- Extracted Links Tab Panel -->
+        <div id="view-links" class="hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+            <div class="glass-card rounded-2xl shadow-xl p-6 flex flex-col min-h-[580px] mb-8">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-5 border-b border-slate-200/60 gap-4 mb-6">
+                    <div>
+                        <h2 class="text-sm font-extrabold text-slate-900">Extracted Links</h2>
+                        <p class="text-xs text-slate-500 mt-0.5">List of all links extracted from message logs.</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <!-- Search Bar -->
+                        <div class="relative min-w-[200px] sm:min-w-[250px]">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                            </span>
+                            <input type="text" id="links-search" class="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-700 transition placeholder:text-slate-400" placeholder="Search sender, link, operator...">
+                        </div>
+                        <button id="btn-export-links" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3.5 py-2 rounded-lg transition shrink-0 active:scale-95 flex items-center gap-1.5 shadow-sm shadow-emerald-600/10 whitespace-nowrap" style="background-color: #059669 !important; color: #ffffff !important;">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="stroke: #ffffff !important;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            Export Excel
+                        </button>
+                        <button id="btn-refresh-links" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/60 text-xs font-bold px-3.5 py-2 rounded-lg transition shrink-0 active:scale-95 flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 4.79M9 9h9l-4-4"></path></svg>
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Links Table Container -->
+                <div class="flex-1 overflow-x-auto overflow-y-auto max-h-[500px] pr-1">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="border-b border-slate-200 text-slate-500 font-extrabold uppercase tracking-wider text-left">
+                                <th class="pb-3.5 font-bold">Direction</th>
+                                <th class="pb-3.5 font-bold">Sender</th>
+                                <th class="pb-3.5 font-bold">Recipient</th>
+                                <th class="pb-3.5 font-bold">Extracted Link</th>
+                                <th class="pb-3.5 font-bold">Original Message Text</th>
+                                <th class="pb-3.5 font-bold">Time</th>
+                                <th class="pb-3.5 font-bold">Telecom / SIM Operator</th>
+                            </tr>
+                        </thead>
+                        <tbody id="links-tbody" class="divide-y divide-slate-100 font-medium text-slate-700">
+                            <!-- Dynamic rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Script Application Logic -->
@@ -332,8 +385,10 @@
 
         const tabBtnChat = document.getElementById("tab-btn-chat");
         const tabBtnLogs = document.getElementById("tab-btn-logs");
+        const tabBtnLinks = document.getElementById("tab-btn-links");
         const viewChat = document.getElementById("view-chat");
         const viewLogs = document.getElementById("view-logs");
+        const viewLinks = document.getElementById("view-links");
 
         const formLogin = document.getElementById("form-login");
         const formSendThread = document.getElementById("form-send-thread");
@@ -804,6 +859,15 @@
                 .replace(/'/g, "&#039;");
         }
 
+        function makeLinksClickable(text) {
+            if (text == null) return "";
+            const urlRegex = /(https?:\/\/[^\s]+)/gi;
+            return text.replace(urlRegex, function(url) {
+                const rawUrl = url.replace(/&amp;/g, "&");
+                return `<a href="${rawUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 underline font-extrabold" onclick="event.stopPropagation();">${url}</a>`;
+            });
+        }
+
         // --- Thread (single conversation) view ---------------------------
         function updateThreadOperatorDropdown(contact) {
             const selectThread = document.getElementById("thread-sim-operator");
@@ -947,29 +1011,10 @@
                     mapInitializers.push({ divId: mapDivId, coords: coords });
                 }
 
-                // Extract separate links and make them clickable buttons (especially for incoming operator responses)
-                let linksHtml = "";
-                if (!isMine) {
-                    const links = extractLinks(m.text);
-                    if (links.length > 0) {
-                        linksHtml = links.map(link => {
-                            return `
-                                <div class="mt-2.5" onclick="event.stopPropagation();">
-                                    <a href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 bg-white hover:bg-slate-50 border border-slate-200 text-blue-700 hover:text-blue-800 font-extrabold px-3 py-2 rounded-xl text-xs transition shadow-sm">
-                                        <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                                        Open Map Link
-                                    </a>
-                                </div>
-                            `;
-                        }).join("");
-                    }
-                }
-
                 const bubbleHtml = `
                     <div class="max-w-[75%] flex flex-col ${containerClass}">
                         <div class="px-3.5 py-2.5 rounded-2xl text-sm font-medium leading-relaxed break-all whitespace-pre-wrap ${bubbleColor}">
-                            ${escapeHtml(formattedText)}
-                            ${linksHtml}
+                            ${makeLinksClickable(escapeHtml(formattedText))}
                             ${mapHtml}
                         </div>
                         <div class="flex items-center space-x-1.5 mt-1 text-[10px] text-slate-500 px-1 font-semibold">
@@ -1285,7 +1330,7 @@
                         <td class="py-3.5 pr-2">${dirBadge}</td>
                         <td class="py-3.5 font-bold text-slate-600">${escapeHtml(m.sender)}</td>
                         <td class="py-3.5 text-slate-800 font-semibold code-font">${escapeHtml(m.recipient)}</td>
-                        <td class="py-3.5 pr-4 text-slate-700 font-medium break-all whitespace-pre-wrap max-w-xs">${escapeHtml(formatOperatorReply(m.text))}</td>
+                        <td class="py-3.5 pr-4 text-slate-700 font-medium break-all whitespace-pre-wrap max-w-xs">${makeLinksClickable(escapeHtml(formatOperatorReply(m.text)))}</td>
                         <td class="py-3.5 text-slate-500 font-medium whitespace-nowrap">${escapeHtml(formatBubbleTimestamp(m.time))}</td>
                         <td class="py-3.5 text-slate-600 font-bold uppercase tracking-wider">${escapeHtml(m.sim_operator || "Unknown")}</td>
                         <td class="py-3.5">${statusBadge}</td>
@@ -1294,35 +1339,184 @@
             });
         }
 
+        function renderLinksTable(filterText = "") {
+            const tbody = document.getElementById("links-tbody");
+            if (!tbody) return;
+            tbody.innerHTML = "";
+
+            const query = filterText.toLowerCase();
+            const rows = [];
+            
+            allMessages.forEach(m => {
+                const links = extractLinks(m.text);
+                links.forEach(link => {
+                    const sender = m.sender || "";
+                    const recipient = m.recipient || "";
+                    const operator = m.sim_operator || "";
+                    
+                    if (query) {
+                        const sLower = sender.toLowerCase();
+                        const rLower = recipient.toLowerCase();
+                        const lLower = link.toLowerCase();
+                        const oLower = operator.toLowerCase();
+                        if (!sLower.includes(query) && !rLower.includes(query) && !lLower.includes(query) && !oLower.includes(query)) {
+                            return;
+                        }
+                    }
+                    
+                    rows.push({
+                        message: m,
+                        link: link
+                    });
+                });
+            });
+
+            if (rows.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="py-12 text-center text-slate-500 font-medium">
+                            No matching links found.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            rows.forEach(item => {
+                const m = item.message;
+                const link = item.link;
+                const isOut = m.direction === 'out';
+                const dirBadge = isOut 
+                    ? `<span class="bg-blue-50 text-blue-700 border border-blue-100 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Outgoing</span>` 
+                    : `<span class="bg-emerald-50 text-emerald-700 border border-emerald-100 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Incoming</span>`;
+                
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                        <td class="py-3.5 pr-2">${dirBadge}</td>
+                        <td class="py-3.5 font-bold text-slate-600">${escapeHtml(m.sender)}</td>
+                        <td class="py-3.5 text-slate-800 font-semibold code-font">${escapeHtml(m.recipient)}</td>
+                        <td class="py-3.5 text-blue-600 font-bold underline code-font max-w-xs break-all">
+                            <a href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer" class="hover:text-blue-800">${escapeHtml(link)}</a>
+                        </td>
+                        <td class="py-3.5 pr-4 text-slate-500 font-medium break-all whitespace-pre-wrap max-w-xs text-[10px]">${escapeHtml(m.text)}</td>
+                        <td class="py-3.5 text-slate-500 font-medium whitespace-nowrap">${escapeHtml(formatBubbleTimestamp(m.time))}</td>
+                        <td class="py-3.5 text-slate-600 font-bold uppercase tracking-wider">${escapeHtml(m.sim_operator || "Unknown")}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        async function runLinksExport(btn) {
+            btn.disabled = true;
+            btn.classList.add("opacity-50");
+            const originalText = btn.innerHTML;
+            btn.innerHTML = "Exporting...";
+
+            try {
+                const headers = ["Direction", "Sender", "Recipient", "Extracted Link", "Original Message Text", "Time", "SIM Operator"];
+                const csvRows = [headers.join(",")];
+
+                const query = document.getElementById("links-search").value.trim().toLowerCase();
+                
+                allMessages.forEach(m => {
+                    const links = extractLinks(m.text);
+                    links.forEach(link => {
+                        const sender = m.sender || "";
+                        const recipient = m.recipient || "";
+                        const operator = m.sim_operator || "";
+                        
+                        if (query) {
+                            const sLower = sender.toLowerCase();
+                            const rLower = recipient.toLowerCase();
+                            const lLower = link.toLowerCase();
+                            const oLower = operator.toLowerCase();
+                            if (!sLower.includes(query) && !rLower.includes(query) && !lLower.includes(query) && !oLower.includes(query)) {
+                                return;
+                            }
+                        }
+
+                        const escapeCsv = (str) => {
+                            if (str == null) return '""';
+                            const escaped = String(str).replace(/"/g, '""');
+                            return `"${escaped}"`;
+                        };
+
+                        const directionStr = m.direction === 'out' ? "Outgoing" : "Incoming";
+
+                        const row = [
+                            escapeCsv(directionStr),
+                            escapeCsv(sender),
+                            escapeCsv(recipient),
+                            escapeCsv(link),
+                            escapeCsv(m.text),
+                            escapeCsv(formatBubbleTimestamp(m.time)),
+                            escapeCsv(operator)
+                        ];
+                        csvRows.push(row.join(","));
+                    });
+                });
+
+                const csvContent = "\uFEFF" + csvRows.join("\n");
+                const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.style.display = "none";
+                a.href = url;
+                a.download = `extracted_links_${sessionStorage.getItem(USERNAME_KEY) || 'user'}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+            } catch (err) {
+                console.error("Export links failed", err);
+                alert("Error exporting links");
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove("opacity-50");
+                btn.innerHTML = originalText;
+            }
+        }
+
         function switchTab(tab) {
+            tabBtnChat.classList.remove("border-blue-700", "text-blue-700", "font-extrabold");
+            tabBtnChat.classList.add("border-transparent", "text-slate-500");
+            
+            tabBtnLogs.classList.remove("border-blue-700", "text-blue-700", "font-extrabold");
+            tabBtnLogs.classList.add("border-transparent", "text-slate-500");
+            
+            tabBtnLinks.classList.remove("border-blue-700", "text-blue-700", "font-extrabold");
+            tabBtnLinks.classList.add("border-transparent", "text-slate-500");
+
+            viewChat.classList.add("hidden");
+            viewLogs.classList.add("hidden");
+            viewLinks.classList.add("hidden");
+
             if (tab === "chat") {
                 tabBtnChat.classList.add("border-blue-700", "text-blue-700", "font-extrabold");
                 tabBtnChat.classList.remove("border-transparent", "text-slate-500");
-                
-                tabBtnLogs.classList.add("border-transparent", "text-slate-500");
-                tabBtnLogs.classList.remove("border-blue-700", "text-blue-700", "font-extrabold");
-                
                 viewChat.classList.remove("hidden");
-                viewLogs.classList.add("hidden");
-            } else {
+            } else if (tab === "logs") {
                 tabBtnLogs.classList.add("border-blue-700", "text-blue-700", "font-extrabold");
                 tabBtnLogs.classList.remove("border-transparent", "text-slate-500");
-                
-                tabBtnChat.classList.add("border-transparent", "text-slate-500");
-                tabBtnChat.classList.remove("border-blue-700", "text-blue-700", "font-extrabold");
-                
-                viewChat.classList.add("hidden");
                 viewLogs.classList.remove("hidden");
-                
                 renderUserLogsTable(document.getElementById("logs-search").value.trim());
+            } else if (tab === "links") {
+                tabBtnLinks.classList.add("border-blue-700", "text-blue-700", "font-extrabold");
+                tabBtnLinks.classList.remove("border-transparent", "text-slate-500");
+                viewLinks.classList.remove("hidden");
+                renderLinksTable(document.getElementById("links-search").value.trim());
             }
         }
 
         tabBtnChat.addEventListener("click", () => switchTab("chat"));
         tabBtnLogs.addEventListener("click", () => switchTab("logs"));
+        tabBtnLinks.addEventListener("click", () => switchTab("links"));
 
         document.getElementById("logs-search").addEventListener("input", (e) => {
             renderUserLogsTable(e.target.value.trim());
+        });
+
+        document.getElementById("links-search").addEventListener("input", (e) => {
+            renderLinksTable(e.target.value.trim());
         });
 
         document.getElementById("btn-refresh-user-logs").addEventListener("click", async () => {
@@ -1337,6 +1531,24 @@
             btn.classList.remove("opacity-50");
             btn.innerHTML = orig;
         });
+
+        document.getElementById("btn-refresh-links").addEventListener("click", async () => {
+            const btn = document.getElementById("btn-refresh-links");
+            btn.disabled = true;
+            btn.classList.add("opacity-50");
+            const orig = btn.innerHTML;
+            btn.innerHTML = "Refreshing...";
+            await loadMessages();
+            renderLinksTable(document.getElementById("links-search").value.trim());
+            btn.disabled = false;
+            btn.classList.remove("opacity-50");
+            btn.innerHTML = orig;
+        });
+
+        const btnExportLinks = document.getElementById("btn-export-links");
+        if (btnExportLinks) {
+            btnExportLinks.addEventListener("click", () => runLinksExport(btnExportLinks));
+        }
 
         // Check login on startup
         checkAuth();
