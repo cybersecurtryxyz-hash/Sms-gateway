@@ -266,6 +266,37 @@
                 </div>
             </section>
 
+            <!-- Scheduled / Periodic Searches (across all coworkers) -->
+            <section class="glass-card rounded-2xl p-6 shadow-xl flex flex-col">
+                <div class="flex justify-between items-center mb-4">
+                    <div>
+                        <h2 class="text-sm font-extrabold text-slate-900">Scheduled Searches</h2>
+                        <p class="text-xs text-slate-500 mt-0.5">Periodic / date-range searches queued by coworkers across the whole system.</p>
+                    </div>
+                    <button id="btn-refresh-schedules" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/60 text-xs font-bold px-3.5 py-2 rounded-lg transition shrink-0 active:scale-95">
+                        Refresh
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="border-b border-slate-200 text-slate-500 font-extrabold uppercase tracking-wider">
+                                <th class="pb-3.5 font-bold">Owner</th>
+                                <th class="pb-3.5 font-bold">Number</th>
+                                <th class="pb-3.5 font-bold">Message</th>
+                                <th class="pb-3.5 font-bold">Frequency</th>
+                                <th class="pb-3.5 font-bold">Start → End</th>
+                                <th class="pb-3.5 font-bold">Status</th>
+                                <th class="pb-3.5 font-bold">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="schedules-tbody" class="divide-y divide-slate-100 text-slate-700">
+                            <!-- Injected schedule rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
         </div>
 
     </main>
@@ -357,10 +388,77 @@
             loadUsers();
             loadNumbers();
             loadMessages();
+            loadSchedules();
 
             // Set running intervals
             setInterval(loadDeviceStatus, 5000);
             setInterval(loadMessages, 5000);
+        }
+
+        function scheduleFrequencyLabel(minutes) {
+            const map = { 5: "5 min", 15: "15 min", 45: "45 min", 60: "60 min", 120: "2 hr", 240: "4 hr", 480: "8 hr", 720: "12 hr", 1440: "Daily" };
+            return map[minutes] || `${minutes} min`;
+        }
+
+        function scheduleStatusBadgeClass(status) {
+            if (status === "active") return "bg-emerald-50 text-emerald-700 border border-emerald-100";
+            if (status === "completed") return "bg-slate-100 text-slate-600 border border-slate-200";
+            return "bg-rose-50 text-rose-600 border border-rose-100";
+        }
+
+        async function loadSchedules() {
+            const pw = sessionStorage.getItem(ADMIN_PASS_KEY);
+            const tbody = document.getElementById("schedules-tbody");
+            if (!tbody) return;
+
+            try {
+                const r = await fetch("/api/admin/schedules", {
+                    headers: { "X-Admin-Password": pw }
+                });
+                if (!r.ok) return;
+                const res = await r.json();
+                const schedules = res.schedules || [];
+
+                if (schedules.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="7" class="py-4 text-center text-slate-400">No scheduled searches yet.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = schedules.map(s => `
+                    <tr>
+                        <td class="py-2.5 font-semibold">${escapeHtml(s.owner_name || s.owner)}</td>
+                        <td class="py-2.5 code-font">${escapeHtml(s.recipient)}</td>
+                        <td class="py-2.5 max-w-[220px] truncate" title="${escapeHtml(s.text)}">${escapeHtml(s.text)}</td>
+                        <td class="py-2.5">${scheduleFrequencyLabel(s.frequency_minutes)}</td>
+                        <td class="py-2.5 text-[11px] text-slate-500">${formatServerTime(s.start_at)} → ${formatServerTime(s.end_at)}</td>
+                        <td class="py-2.5"><span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${scheduleStatusBadgeClass(s.status)}">${s.status}</span></td>
+                        <td class="py-2.5">
+                            ${s.status === "active" ? `<button onclick="cancelAdminSchedule('${s.id}')" class="text-rose-600 hover:underline font-bold">Stop</button>` : "—"}
+                        </td>
+                    </tr>
+                `).join("");
+            } catch (err) {
+                console.error("Failed to load schedules", err);
+            }
+        }
+
+        async function cancelAdminSchedule(scheduleId) {
+            const pw = sessionStorage.getItem(ADMIN_PASS_KEY);
+            if (!confirm("Stop this scheduled search?")) return;
+            try {
+                const r = await fetch(`/api/admin/schedules/${scheduleId}`, {
+                    method: "DELETE",
+                    headers: { "X-Admin-Password": pw }
+                });
+                if (r.ok) loadSchedules();
+            } catch (err) {
+                alert("Failed to stop scheduled search.");
+            }
+        }
+
+        const btnRefreshSchedules = document.getElementById("btn-refresh-schedules");
+        if (btnRefreshSchedules) {
+            btnRefreshSchedules.addEventListener("click", loadSchedules);
         }
 
         // Fetch Device Status from Server

@@ -1,6 +1,7 @@
 import time
 import io
 import csv
+import uuid
 from datetime import datetime, timezone
 
 from flask import Blueprint, request, jsonify, Response
@@ -9,8 +10,25 @@ from ..db import get_db
 from ..security import verify_coworker_password, generate_token, verify_token, get_bearer_token
 from ..config import Config
 from ..extensions import limiter
+from ..scheduler import ALLOWED_FREQUENCIES_MINUTES
 
 coworker_bp = Blueprint("coworker", __name__, url_prefix="/api")
+
+_DT_FORMATS = ("%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M")
+
+
+def _parse_datetime(value):
+    """Accepts the <input type="datetime-local"> format ("2026-07-20T14:30")
+    as well as a plain "YYYY-MM-DD HH:MM[:SS]" string. Returns None if it
+    doesn't match any of those, so callers can turn that into a 400."""
+    if not value:
+        return None
+    for fmt in _DT_FORMATS:
+        try:
+            return datetime.strptime(value, fmt)
+        except ValueError:
+            continue
+    return None
 
 
 def _require_coworker():
@@ -219,3 +237,107 @@ def coworker_send_sms():
         conn.close()
 
         return jsonify({"success": True, "message_id": msg_id}), 200
+
+
+@coworker_bp.route("/schedules", methods=["GET", "POST"])
+def coworker_schedules():
+    username, err = _require_coworker()
+    if err:
+        return err
+
+    conn = get_db()
+
+    if request.method == "GET":
+        rows = conn.execute(
+            "SELECT * FROM schedules WHERE owner = ? ORDER BY created_at DESC",
+            (username,),
+        ).fetchall()
+        conn.close()
+        return jsonify({"schedules": [dict(r) for r in rows]}), 200
+
+    data = request.json or {}
+    to = data.get("to")
+    text = data.get("text")
+    sim_operator = data.get("sim_operator", "").strip()
+    frequency_minutes = data.get("frequency_minutes")
+    start_raw = data.get("start_at")
+    end_raw = data.get("end_at")
+
+    if not to or not text:
+        conn.close()
+        return jsonify({"error": "Receiver and message are required"}), 400
+
+    try:
+        frequency_minutes = int(frequency_minutes)
+    except (TypeError, ValueError):
+        conn.close()
+        return jsonify({"error": "Invalid frequency"}), 400
+    if frequency_minutes not in ALLOWED_FREQUENCIES_MINUTES:
+        conn.close()
+        return jsonify({"error": "Unsupported frequency"}), 400
+
+    start_at = _parse_datetime(start_raw)
+    end_at = _parse_datetime(end_raw)
+    if not start_at or not end_at:
+        conn.close()
+        return jsonify({"error": "start_at and end_at are required (YYYY-MM-DDTHH:MM)"}), 400
+    if end_at <= start_at:
+        conn.close()
+        return jsonify({"error": "end_at must be after start_at"}), 400
+
+    # Same authorization rules as a manual send: the number must be a
+    # registered gateway number and (if restricted) one this user is allowed
+    # to use.
+    user_row = conn.execute("SELECT allowed_numbers FROM users WHERE username = ?", (username,)).fetchone()
+    if not user_row:
+        conn.close()
+        return jsonify({"error": "User profile not found"}), 404
+    allowed = user_row["allowed_numbers"] or "*"
+
+    if sim_operator != "ALL_OPERATORS":
+        gateway_row = conn.execute("SELECT phone_number FROM gateway_numbers WHERE phone_number = ?", (to,)).fetchone()
+        if not gateway_row:
+            conn.close()
+            return jsonify({"error": "Invalid recipient. Only pre-defined admin numbers are allowed."}), 400
+    if allowed != "*" and to not in allowed.split(","):
+        conn.close()
+        return jsonify({"error": "You are not authorized to send messages to this number."}), 400
+
+    schedule_id = uuid.uuid4().hex[:12]
+    now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    start_at_str = start_at.strftime("%Y-%m-%d %H:%M:%S")
+    end_at_str = end_at.strftime("%Y-%m-%d %H:%M:%S")
+
+    conn.execute(
+        """
+        INSERT INTO schedules
+            (id, owner, recipient, text, sim_operator, frequency_minutes, start_at, end_at, next_run_at, status, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?)
+        """,
+        (schedule_id, username, to, text, sim_operator, frequency_minutes, start_at_str, end_at_str, start_at_str, now_str),
+    )
+    conn.commit()
+    conn.close()
+
+    return jsonify({"success": True, "schedule_id": schedule_id}), 200
+
+
+@coworker_bp.route("/schedules/<schedule_id>", methods=["DELETE"])
+def coworker_cancel_schedule(schedule_id):
+    username, err = _require_coworker()
+    if err:
+        return err
+
+    conn = get_db()
+    row = conn.execute("SELECT owner FROM schedules WHERE id = ?", (schedule_id,)).fetchone()
+    if not row:
+        conn.close()
+        return jsonify({"error": "Schedule not found"}), 404
+    if row["owner"] != username:
+        conn.close()
+        return jsonify({"error": "Unauthorized"}), 403
+
+    conn.execute("UPDATE schedules SET status = 'cancelled' WHERE id = ?", (schedule_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True}), 200

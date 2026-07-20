@@ -136,6 +136,28 @@ def init_db():
             """
         )
 
+        # Periodic/date-range search schedules. A schedule repeatedly queues
+        # the same outgoing message to `recipient` every `frequency_minutes`,
+        # starting at `start_at` and stopping after `end_at`.
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS schedules (
+                id TEXT PRIMARY KEY,
+                owner TEXT NOT NULL,
+                recipient TEXT NOT NULL,
+                text TEXT NOT NULL,
+                sim_operator TEXT,
+                frequency_minutes INTEGER NOT NULL,
+                start_at TEXT NOT NULL,
+                end_at TEXT NOT NULL,
+                next_run_at TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'active',
+                created_at TEXT NOT NULL,
+                last_run_at TEXT
+            )
+            """
+        )
+
         cursor.execute("SELECT COUNT(*) FROM gateway_numbers")
         if cursor.fetchone()[0] == 0:
             cursor.execute(

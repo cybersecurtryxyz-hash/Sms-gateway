@@ -35,6 +35,16 @@ def create_app():
     with app.app_context():
         init_db()
 
+    # Skip starting a second copy of the scheduler in the Flask dev
+    # reloader's watcher process (it forks a child that re-runs this
+    # module); only the actual running process should have os.environ
+    # WERKZEUG_RUN_MAIN set to "true" once it re-execs. In production
+    # (gunicorn, no reloader) this env var is simply unset, so we start
+    # normally.
+    if not Config.DEBUG or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+        from .scheduler import register_scheduler
+        app.scheduler = register_scheduler(app)
+
     app.register_blueprint(pages_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(coworker_bp)

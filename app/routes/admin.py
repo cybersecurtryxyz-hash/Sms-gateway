@@ -279,3 +279,40 @@ def admin_delete_number(phone_number):
     conn.commit()
     conn.close()
     return jsonify({"success": True}), 200
+
+
+@admin_bp.route("/schedules", methods=["GET"])
+def admin_schedules():
+    """List every coworker's periodic/date-range searches, newest first."""
+    if (err := _require_admin()) is not None:
+        return err
+
+    conn = get_db()
+    rows = conn.execute(
+        """
+        SELECT s.*, u.name AS owner_name
+        FROM schedules s
+        LEFT JOIN users u ON s.owner = u.username
+        ORDER BY s.created_at DESC
+        """
+    ).fetchall()
+    conn.close()
+    return jsonify({"schedules": [dict(r) for r in rows]}), 200
+
+
+@admin_bp.route("/schedules/<schedule_id>", methods=["DELETE"])
+def admin_cancel_schedule(schedule_id):
+    """Admin can cancel (stop) any coworker's schedule."""
+    if (err := _require_admin()) is not None:
+        return err
+
+    conn = get_db()
+    row = conn.execute("SELECT id FROM schedules WHERE id = ?", (schedule_id,)).fetchone()
+    if not row:
+        conn.close()
+        return jsonify({"error": "Schedule not found"}), 404
+
+    conn.execute("UPDATE schedules SET status = 'cancelled' WHERE id = ?", (schedule_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True}), 200
