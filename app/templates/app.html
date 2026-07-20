@@ -1180,8 +1180,15 @@
         }
 
         function formatServerTimeShort(str) {
-            if (!str) return "—";
-            return str.replace(" ", " · ").slice(0, 16);
+            const date = parseServerTime(str);
+            if (!date) return "—";
+            // Converts the stored UTC timestamp to the viewer's local time,
+            // shown compactly (date + hour:minute), consistent with how
+            // times are displayed everywhere else in the app.
+            return date.toLocaleString([], {
+                day: "numeric", month: "short",
+                hour: "numeric", minute: "2-digit"
+            });
         }
 
         async function cancelSchedule(scheduleId) {
