@@ -359,6 +359,10 @@
                             selectRecipient.appendChild(opt);
                         }
                     }
+
+                    if (activeContact) {
+                        updateThreadOperatorDropdown(activeContact);
+                    }
                 }
             } catch (err) {
                 console.error("Failed to load allowed numbers", err);
@@ -732,10 +736,49 @@
         }
 
         // --- Thread (single conversation) view ---------------------------
+        function updateThreadOperatorDropdown(contact) {
+            const selectThread = document.getElementById("thread-sim-operator");
+            if (!selectThread) return;
+            selectThread.innerHTML = "";
+
+            const normalizedContact = normalizePhone(contact);
+            const matched = allowedNumbers.find(n => normalizePhone(n.phone_number) === normalizedContact);
+
+            if (matched) {
+                const opt = document.createElement("option");
+                opt.value = matched.operator_name;
+                opt.textContent = matched.operator_name;
+                selectThread.appendChild(opt);
+            } else {
+                // Fallback: if no exact match, show all allowed numbers
+                allowedNumbers.forEach(n => {
+                    const opt = document.createElement("option");
+                    opt.value = n.operator_name;
+                    opt.textContent = n.operator_name;
+                    selectThread.appendChild(opt);
+                });
+                
+                if (allowedNumbers.length > 0) {
+                    const optAll = document.createElement("option");
+                    optAll.value = "ALL_OPERATORS";
+                    optAll.textContent = "All Numbers (Send via All)";
+                    selectThread.appendChild(optAll);
+                }
+                
+                if (allowedNumbers.length === 0) {
+                    const opt = document.createElement("option");
+                    opt.value = "";
+                    opt.textContent = "Default SIM";
+                    selectThread.appendChild(opt);
+                }
+            }
+        }
+
         function openThread(contact) {
             activeContact = contact;
             document.getElementById("thread-contact-number").textContent = contact;
             showPanel(panelThread);
+            updateThreadOperatorDropdown(contact);
             renderThread(contact);
             renderConversations(); // refresh highlight state
         }
@@ -1077,3 +1120,4 @@
     </script>
 </body>
 </html>
+s
