@@ -10,17 +10,23 @@ logger = logging.getLogger(__name__)
 _db_path = None  # resolved lazily, cached after first successful connection
 
 
+def _is_writable_db(path):
+    """Run a one-time write test to confirm the database path is writable."""
+    try:
+        conn = sqlite3.connect(path, timeout=5.0)
+        conn.execute("CREATE TABLE IF NOT EXISTS _write_test (id INTEGER)")
+        conn.execute("DROP TABLE _write_test")
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        logger.warning("Path %s is not writable: %s", path, e)
+        return False
+
+
 def _try_connect(path):
     conn = sqlite3.connect(path, timeout=30.0)
     conn.row_factory = sqlite3.Row
-    try:
-        conn.execute("PRAGMA journal_mode=WAL")
-    except Exception:
-        pass
-    # Write test to make sure the location is actually usable
-    conn.execute("CREATE TABLE IF NOT EXISTS _write_test (id INTEGER)")
-    conn.execute("DROP TABLE _write_test")
-    conn.commit()
     return conn
 
 
@@ -28,31 +34,22 @@ def get_db():
     """
     Return a SQLite connection, falling back gracefully:
     resolved path -> /tmp -> in-memory, logging each fallback.
+    The path is resolved once and cached to avoid running DDL write tests on every connection.
     """
     global _db_path
-    target_path = _db_path or Config.resolve_db_path()
+    if _db_path is None:
+        target_path = Config.resolve_db_path()
+        if _is_writable_db(target_path):
+            _db_path = target_path
+            logger.info("Using database at %s", _db_path)
+        elif target_path != "/tmp/sms_gateway.db" and _is_writable_db("/tmp/sms_gateway.db"):
+            _db_path = "/tmp/sms_gateway.db"
+            logger.info("Using fallback database at %s", _db_path)
+        else:
+            _db_path = ":memory:"
+            logger.warning("Falling back to transient in-memory SQLite database")
 
-    # Try original target path
-    try:
-        conn = _try_connect(target_path)
-        _db_path = target_path  # Cache successful connection path
-        return conn
-    except Exception as e:
-        logger.warning("Database at %s is not writable: %s", target_path, e)
-
-    # Try /tmp fallback
-    if target_path != "/tmp/sms_gateway.db":
-        try:
-            conn = _try_connect("/tmp/sms_gateway.db")
-            _db_path = "/tmp/sms_gateway.db"  # Cache successful fallback path
-            return conn
-        except Exception as e:
-            logger.warning("Fallback to /tmp failed: %s", e)
-
-    logger.warning("Falling back to transient in-memory SQLite database for this connection")
-    conn = sqlite3.connect(":memory:", timeout=30.0)
-    conn.row_factory = sqlite3.Row
-    return conn
+    return _try_connect(_db_path)
 
 
 def init_db():
