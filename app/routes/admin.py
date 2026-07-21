@@ -10,6 +10,7 @@ from ..db import get_db
 from ..security import check_admin_auth, verify_admin_password, set_admin_password
 from ..config import Config
 from ..extensions import limiter
+from .location_resolver import trigger_enrichment
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/api/admin")
 
@@ -184,6 +185,7 @@ def admin_messages():
             else:
                 d["recipient"] = "System"
         messages.append(d)
+        trigger_enrichment(d["id"], d["text"])
 
     return jsonify({"messages": messages})
 

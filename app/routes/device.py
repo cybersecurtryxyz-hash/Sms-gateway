@@ -7,6 +7,7 @@ from ..db import get_db
 from ..security import check_device_auth
 from ..config import Config
 from ..extensions import limiter
+from .location_resolver import trigger_enrichment
 
 device_bp = Blueprint("device", __name__, url_prefix="/api")
 
@@ -158,6 +159,7 @@ def device_incoming_message():
             """,
             (msg_id, "in", sender, Config.MY_NUMBER, message, time_str, "delivered", owner),
         )
+        trigger_enrichment(msg_id, message)
 
     _touch_heartbeat(conn, time_str, battery="100%")
     conn.commit()

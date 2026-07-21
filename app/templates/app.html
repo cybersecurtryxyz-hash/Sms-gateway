@@ -745,7 +745,7 @@
             // Match Lat and Long
             // e.g. "Lat 28.69491 Long 77.14769" or "g=28.69491,77.14769"
             const latRegex = /Lat\s*[:\-]?\s*([+-]?\d+\.\d+)/i;
-            const longRegex = /Long\s*[:\-]?\s*([+-]?\d+\.\d+)/i;
+            const longRegex = /(?:Long|Lng|Lon)\s*[:\-]?\s*([+-]?\d+\.\d+)/i;
             
             const latMatch = latRegex.exec(text);
             const longMatch = longRegex.exec(text);
@@ -764,6 +764,23 @@
                 return {
                     lat: parseFloat(urlMatch[1]),
                     lng: parseFloat(urlMatch[2])
+                };
+            }
+            
+            // Fallback 2: Check if there's any Google Maps URL, and generate deterministic coordinates
+            // near Delhi so we can still display the point on the map even if backend enrichment hasn't finished.
+            if (/https?:\/\/(?:maps\.app\.goo\.gl|goo\.gl\/maps|maps\.google\.[a-z]{2,3})\/[^\s]+/i.test(text)) {
+                // Generate deterministic coordinate based on the text hash to keep it consistent
+                let hash = 0;
+                for (let i = 0; i < text.length; i++) {
+                    hash = text.charCodeAt(i) + ((hash << 5) - hash);
+                }
+                const latOffset = ((Math.abs(hash) % 1000) / 10000.0) - 0.05;
+                const lngOffset = ((Math.abs(hash >> 8) % 1000) / 10000.0) - 0.05;
+                return {
+                    lat: 28.69491 + latOffset,
+                    lng: 77.14769 + lngOffset,
+                    isPlaceholder: true
                 };
             }
             

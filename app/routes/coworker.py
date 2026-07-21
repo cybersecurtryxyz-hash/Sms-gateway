@@ -11,6 +11,7 @@ from ..security import verify_coworker_password, generate_token, verify_token, g
 from ..config import Config
 from ..extensions import limiter
 from ..scheduler import ALLOWED_FREQUENCIES_MINUTES
+from .location_resolver import trigger_enrichment
 
 coworker_bp = Blueprint("coworker", __name__, url_prefix="/api")
 
@@ -110,7 +111,12 @@ def coworker_inbox():
         (username,),
     ).fetchall()
     conn.close()
-    return jsonify({"messages": [dict(r) for r in rows]})
+    
+    messages = [dict(r) for r in rows]
+    for msg in messages:
+        trigger_enrichment(msg["id"], msg["text"])
+        
+    return jsonify({"messages": messages})
 
 
 @coworker_bp.route("/export", methods=["GET"])
