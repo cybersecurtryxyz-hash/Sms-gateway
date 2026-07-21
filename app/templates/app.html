@@ -52,6 +52,10 @@
             background-color: rgba(248, 250, 252, 0.85);
             border: 1px solid rgba(30, 58, 138, 0.05);
         }
+        .custom-div-icon {
+            background: transparent !important;
+            border: none !important;
+        }
     </style>
 </head>
 <body class="text-slate-800 min-h-screen pb-8">
@@ -166,14 +170,20 @@
 
                 <!-- Thread view -->
                 <div id="panel-thread" class="flex-1 flex-col overflow-hidden hidden">
-                    <div class="border-b border-slate-200/60 p-4 flex items-center gap-3">
-                        <div class="w-9 h-9 rounded-full bg-slate-100 border border-slate-200 text-blue-700 flex items-center justify-center shrink-0">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    <div class="border-b border-slate-200/60 p-4 flex items-center justify-between">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <div class="w-9 h-9 rounded-full bg-slate-100 border border-slate-200 text-blue-700 flex items-center justify-center shrink-0">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                            </div>
+                            <div class="min-w-0">
+                                <div id="thread-contact-number" class="text-sm font-extrabold text-slate-800 code-font truncate">—</div>
+                                <div class="text-[11px] text-slate-500 font-medium">SMS conversation</div>
+                            </div>
                         </div>
-                        <div class="min-w-0">
-                            <div id="thread-contact-number" class="text-sm font-extrabold text-slate-800 code-font truncate">—</div>
-                            <div class="text-[11px] text-slate-500 font-medium">SMS conversation</div>
-                        </div>
+                        <button id="btn-show-history-map" class="hidden bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200/60 text-xs font-bold px-3 py-1.5 rounded-lg transition active:scale-95 flex items-center gap-1.5 shadow-sm whitespace-nowrap shrink-0">
+                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                            Location History (0)
+                        </button>
                     </div>
                     <div id="thread-messages" class="flex-1 overflow-y-auto p-5 space-y-3.5 flex flex-col">
                         <!-- Dynamic bubbles -->
@@ -368,6 +378,42 @@
                             <!-- Dynamic rows -->
                         </tbody>
                     </table>
+                </div>
+            </div>
+         </div>
+
+        <!-- Location History Modal -->
+        <div id="modal-location-history" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden" style="background-color: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);">
+            <div class="w-full max-w-5xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col h-[640px] max-h-[90vh] animate-in fade-in zoom-in duration-200">
+                <!-- Header -->
+                <div class="p-5 border-b border-slate-200/60 flex items-center justify-between bg-slate-50/50">
+                    <div>
+                        <h3 class="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                            <svg class="w-4 h-4 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                            Location History Map (<span id="history-modal-phone" class="code-font text-blue-700">—</span>)
+                        </h3>
+                        <p class="text-[11px] text-slate-500 mt-1">Viewing all extracted locations plotted in chronological sequence of movement</p>
+                    </div>
+                    <button id="btn-close-location-modal" class="text-slate-400 hover:text-slate-600 transition p-1.5 rounded-lg hover:bg-slate-100/80">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                <!-- Body -->
+                <div class="flex-1 flex flex-col md:flex-row min-h-0">
+                    <!-- Map Left Pane -->
+                    <div class="flex-1 relative bg-slate-100 min-h-[300px] md:min-h-0 border-r border-slate-200/50">
+                        <div id="history-map" class="w-full h-full z-10"></div>
+                    </div>
+                    <!-- Location List Right Pane -->
+                    <div class="w-full md:w-80 flex flex-col min-h-0 bg-white">
+                        <div class="p-4 border-b border-slate-100 bg-slate-50/30 flex items-center justify-between">
+                            <h4 class="text-xs font-extrabold text-slate-700 uppercase tracking-wider">Historical Points</h4>
+                            <span id="history-modal-count" class="bg-blue-100 text-blue-800 font-extrabold text-[10px] px-2 py-0.5 rounded-full">0</span>
+                        </div>
+                        <div id="history-locations-list" class="flex-1 overflow-y-auto divide-y divide-slate-100 p-2 space-y-1">
+                            <!-- Location elements will be populated here -->
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1053,6 +1099,21 @@
                 console.warn("Leaflet library (L) is not defined.");
             }
 
+            // Update Location History button state based on coordinates count
+            const locCount = flatMsgs.filter(m => extractCoordinates(m.text) != null).length;
+            const btnHistory = document.getElementById("btn-show-history-map");
+            if (btnHistory) {
+                if (locCount > 0) {
+                    btnHistory.classList.remove("hidden");
+                    btnHistory.innerHTML = `
+                        <svg class="w-4 h-4 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        Location History (${locCount})
+                    `;
+                } else {
+                    btnHistory.classList.add("hidden");
+                }
+            }
+
             setTimeout(() => {
                 threadMessages.scrollTop = threadMessages.scrollHeight;
             }, 50);
@@ -1549,6 +1610,222 @@
         if (btnExportLinks) {
             btnExportLinks.addEventListener("click", () => runLinksExport(btnExportLinks));
         }
+
+        // --- Location History Modal logic ---
+        let historyMap = null;
+
+        function openHistoryModal() {
+            if (!activeContact) return;
+            
+            document.getElementById("history-modal-phone").textContent = activeContact;
+            
+            // Extract locations
+            const targetKey = normalizePhone(activeContact);
+            const threadMsgs = allMessages
+                .filter(m => {
+                    const msgContact = m.direction === "out" ? m.recipient : m.sender;
+                    return normalizePhone(msgContact) === targetKey;
+                });
+                
+            // Chronological sort
+            const sortedThreadMsgs = [...threadMsgs].sort((a, b) => {
+                const timeA = new Date(a.time).getTime() || a.id;
+                const timeB = new Date(b.time).getTime() || b.id;
+                return timeA - timeB;
+            });
+            
+            const locs = [];
+            sortedThreadMsgs.forEach(m => {
+                const coords = extractCoordinates(m.text);
+                if (coords) {
+                    locs.push({
+                        coords: coords,
+                        time: m.time,
+                        text: m.text,
+                        id: m.id,
+                        direction: m.direction,
+                        operator: m.sim_operator || 'Unknown'
+                    });
+                }
+            });
+            
+            document.getElementById("history-modal-count").textContent = locs.length;
+            
+            // Show modal
+            const modal = document.getElementById("modal-location-history");
+            modal.classList.remove("hidden");
+            
+            // Populate list pane
+            const listContainer = document.getElementById("history-locations-list");
+            listContainer.innerHTML = "";
+            
+            if (locs.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="p-4 text-center text-xs text-slate-500 font-medium">
+                        No locations available in this thread.
+                    </div>
+                `;
+                return;
+            }
+            
+            // Destroy existing map if any
+            if (historyMap) {
+                try {
+                    historyMap.remove();
+                } catch(e) {
+                    console.error("Error removing old map instance:", e);
+                }
+                historyMap = null;
+            }
+            
+            // Re-initialize map
+            if (typeof L !== "undefined") {
+                try {
+                    historyMap = L.map("history-map", {
+                        zoomControl: true,
+                        attributionControl: false
+                    });
+                    
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        maxZoom: 19
+                    }).addTo(historyMap);
+                } catch (e) {
+                    console.error("Leaflet initialization failed in modal:", e);
+                }
+            }
+            
+            const latlngs = [];
+            const markers = [];
+            
+            locs.forEach((loc, index) => {
+                const lat = loc.coords.lat;
+                const lng = loc.coords.lng;
+                const latlng = [lat, lng];
+                latlngs.push(latlng);
+                
+                const timeStr = formatBubbleTimestamp(loc.time);
+                const seqNumber = index + 1;
+                
+                // Add list item
+                const item = document.createElement("div");
+                item.className = "p-3 hover:bg-slate-50 border-b border-slate-100 transition cursor-pointer flex flex-col gap-1 text-xs";
+                item.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="font-extrabold text-blue-700 bg-blue-50 border border-blue-100 rounded-full w-5 h-5 flex items-center justify-center shrink-0 text-[10px]">
+                            ${seqNumber}
+                        </span>
+                        <span class="text-[10px] text-slate-500 font-bold">${timeStr}</span>
+                    </div>
+                    <div class="text-slate-800 mt-1 font-bold code-font">Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}</div>
+                    <div class="text-[10px] text-slate-400 font-semibold truncate">Operator: ${escapeHtml(loc.operator)}</div>
+                `;
+                
+                // Click list item to zoom/pan to that marker and open its popup
+                item.addEventListener("click", () => {
+                    if (historyMap) {
+                        historyMap.setView(latlng, 16);
+                        markers[index].openPopup();
+                    }
+                });
+                listContainer.appendChild(item);
+                
+                // Create custom marker icon with sequence number
+                if (historyMap) {
+                    const seqIcon = L.divIcon({
+                        className: 'custom-div-icon',
+                        html: `
+                            <div class="w-7 h-7 rounded-full bg-blue-700 text-white font-extrabold flex items-center justify-center border-2 border-white shadow-md text-xs relative active:scale-95 transition">
+                                ${seqNumber}
+                                <div class="absolute w-2 h-2 bg-blue-700 rotate-45 -bottom-1 left-2.5 border-r border-b border-white"></div>
+                            </div>
+                        `,
+                        iconSize: [28, 28],
+                        iconAnchor: [14, 28],
+                        popupAnchor: [0, -28]
+                    });
+                    
+                    const marker = L.marker(latlng, { icon: seqIcon }).addTo(historyMap);
+                    
+                    const popupContent = `
+                        <div class="p-2 max-w-xs text-slate-800 leading-relaxed font-medium">
+                            <div class="flex items-center gap-1.5 border-b border-slate-100 pb-1.5 mb-1.5">
+                                <span class="bg-blue-700 text-white font-bold rounded-full w-5 h-5 flex items-center justify-center text-[10px]">
+                                    ${seqNumber}
+                                </span>
+                                <span class="font-bold text-slate-900 text-xs">Location Point</span>
+                            </div>
+                            <div class="text-[11px] space-y-1">
+                                <div class="flex justify-between gap-4">
+                                    <span class="text-slate-400 font-semibold">Time:</span>
+                                    <span class="font-extrabold text-slate-700">${timeStr}</span>
+                                </div>
+                                <div class="flex justify-between gap-4">
+                                    <span class="text-slate-400 font-semibold">Lat:</span>
+                                    <span class="font-mono text-slate-700 font-bold">${lat.toFixed(6)}</span>
+                                </div>
+                                <div class="flex justify-between gap-4">
+                                    <span class="text-slate-400 font-semibold">Lng:</span>
+                                    <span class="font-mono text-slate-700 font-bold">${lng.toFixed(6)}</span>
+                                </div>
+                                <div class="flex justify-between gap-4">
+                                    <span class="text-slate-400 font-semibold">Operator:</span>
+                                    <span class="font-bold text-slate-700 uppercase">${escapeHtml(loc.operator)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    marker.bindPopup(popupContent);
+                    markers.push(marker);
+                }
+            });
+            
+            // Draw Polyline path between locations
+            if (historyMap && latlngs.length > 1) {
+                const polyline = L.polyline(latlngs, {
+                    color: '#1d4ed8', // tailwind blue-700
+                    weight: 3,
+                    opacity: 0.8,
+                    dashArray: '5, 8', // dashed path
+                    lineJoin: 'round'
+                }).addTo(historyMap);
+                
+                // Fit map bounds
+                setTimeout(() => {
+                    historyMap.fitBounds(polyline.getBounds(), { padding: [40, 40] });
+                }, 150);
+            } else if (historyMap && latlngs.length === 1) {
+                // Just one point
+                setTimeout(() => {
+                    historyMap.setView(latlngs[0], 14);
+                }, 150);
+            }
+            
+            // Trigger size invalidation
+            setTimeout(() => {
+                if (historyMap) historyMap.invalidateSize();
+            }, 300);
+        }
+
+        function closeHistoryModal() {
+            const modal = document.getElementById("modal-location-history");
+            modal.classList.add("hidden");
+            if (historyMap) {
+                try {
+                    historyMap.remove();
+                } catch(e) {
+                    console.error("Error cleaning up map on close:", e);
+                }
+                historyMap = null;
+            }
+        }
+
+        document.getElementById("btn-show-history-map").addEventListener("click", openHistoryModal);
+        document.getElementById("btn-close-location-modal").addEventListener("click", closeHistoryModal);
+        document.getElementById("modal-location-history").addEventListener("click", (e) => {
+            if (e.target === document.getElementById("modal-location-history")) {
+                closeHistoryModal();
+            }
+        });
 
         // Check login on startup
         checkAuth();
