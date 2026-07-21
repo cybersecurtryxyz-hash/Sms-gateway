@@ -23,6 +23,55 @@ MAX_REDIRECTS = 6
 REQUEST_TIMEOUT = 8
 MAX_ATTEMPTS = 2
 
+# ---- Reverse geocoding (lat/lng -> human readable address) ----
+# Simple in-memory cache (rounded to ~11m precision) + a lock that enforces
+# Nominatim's "max 1 request/sec" usage policy across all callers.
+_reverse_geocode_cache = {}
+_reverse_geocode_lock = threading.Lock()
+_last_nominatim_call = [0.0]
+
+
+def _throttle_nominatim():
+    with _reverse_geocode_lock:
+        elapsed = time.time() - _last_nominatim_call[0]
+        if elapsed < 1.1:
+            time.sleep(1.1 - elapsed)
+        _last_nominatim_call[0] = time.time()
+
+
+def reverse_geocode(lat, lng):
+    """
+    Turns a (lat, lng) pair into a human-readable address/place name using
+    Nominatim's reverse geocoding endpoint. Cached in-memory so the same
+    point isn't looked up repeatedly, and throttled to respect Nominatim's
+    usage policy. Returns a string, or None if it couldn't be resolved.
+    """
+    key = (round(float(lat), 4), round(float(lng), 4))
+    if key in _reverse_geocode_cache:
+        return _reverse_geocode_cache[key]
+
+    _throttle_nominatim()
+    try:
+        url = (
+            f"https://nominatim.openstreetmap.org/reverse?lat={lat}&lon={lng}"
+            f"&format=json&zoom=16&addressdetails=1"
+        )
+        req = urllib.request.Request(
+            url,
+            headers={
+                'User-Agent': 'SmsGatewayApplet/1.0 (cyber.securtry.xyz@gmail.com)'
+            }
+        )
+        with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT) as response:
+            data = json.loads(response.read().decode('utf-8'))
+            address = data.get('display_name') if data else None
+            _reverse_geocode_cache[key] = address
+            return address
+    except Exception as e:
+        logger.warning("Reverse geocoding failed for (%s, %s): %s", lat, lng, e)
+        _reverse_geocode_cache[key] = None
+        return None
+
 
 def extract_explicit_coords(text):
     """
