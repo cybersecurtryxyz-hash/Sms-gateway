@@ -11,7 +11,7 @@ from ..security import verify_coworker_password, generate_token, verify_token, g
 from ..config import Config
 from ..extensions import limiter
 from ..scheduler import ALLOWED_FREQUENCIES_MINUTES
-from .location_resolver import trigger_enrichment
+from .location_resolver import trigger_enrichment, reverse_geocode
 
 coworker_bp = Blueprint("coworker", __name__, url_prefix="/api")
 
@@ -117,6 +117,27 @@ def coworker_inbox():
         trigger_enrichment(msg["id"], msg["text"])
         
     return jsonify({"messages": messages})
+
+
+@coworker_bp.route("/reverse-geocode", methods=["GET"])
+def coworker_reverse_geocode():
+    username, err = _require_coworker()
+    if err:
+        return err
+
+    lat = request.args.get("lat")
+    lng = request.args.get("lng")
+    try:
+        lat = float(lat)
+        lng = float(lng)
+    except (TypeError, ValueError):
+        return jsonify({"error": "lat and lng query params are required"}), 400
+
+    address = reverse_geocode(lat, lng)
+    if not address:
+        return jsonify({"address": None}), 200
+
+    return jsonify({"address": address}), 200
 
 
 @coworker_bp.route("/export", methods=["GET"])
