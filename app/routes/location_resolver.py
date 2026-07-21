@@ -4,6 +4,7 @@ import urllib.parse
 import hashlib
 import threading
 import logging
+import json
 from ..db import get_db
 
 logger = logging.getLogger(__name__)
@@ -13,6 +14,36 @@ MAPS_URL_PATTERN = re.compile(
     r'(https?://(?:maps\.app\.goo\.gl|goo\.gl/maps|maps\.google\.(?:com|[a-z]{2,3}))/[^\s]+)',
     re.IGNORECASE
 )
+
+class NoRedirectHandler(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        # Stop following redirects by raising an HTTPError with the redirect target
+        raise urllib.request.HTTPError(req.full_url, code, msg, headers, fp)
+
+def geocode_place_name(place_name):
+    """
+    Geocodes a place name (e.g. 'Agra, Uttar Pradesh') using Nominatim.
+    Returns (lat, lng) if successful, else None.
+    """
+    try:
+        query = urllib.parse.quote_plus(place_name)
+        url = f"https://nominatim.openstreetmap.org/search?q={query}&format=json&limit=1"
+        req = urllib.request.Request(
+            url,
+            headers={
+                'User-Agent': 'SmsGatewayApplet/1.0 (cyber.securtry.xyz@gmail.com)'
+            }
+        )
+        with urllib.request.urlopen(req, timeout=4) as response:
+            data = json.loads(response.read().decode('utf-8'))
+            if data and len(data) > 0:
+                lat = float(data[0]['lat'])
+                lng = float(data[0]['lon'])
+                logger.info("Successfully geocoded '%s' to (%f, %f)", place_name, lat, lng)
+                return lat, lng
+    except Exception as e:
+        logger.warning("Failed geocoding place name '%s': %s", place_name, e)
+    return None
 
 def extract_coords_from_url(url):
     """
@@ -26,24 +57,54 @@ def extract_coords_from_url(url):
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
             }
         )
-        # We handle redirects to extract coords even if final response is not 200
-        with urllib.request.urlopen(req, timeout=4) as response:
-            final_url = response.geturl()
+        
+        opener = urllib.request.build_opener(NoRedirectHandler)
+        final_url = None
+        try:
+            with opener.open(req, timeout=4) as response:
+                final_url = response.geturl()
+        except urllib.request.HTTPError as e:
+            if e.code in (301, 302, 303, 307, 308):
+                final_url = e.headers.get('Location')
+            else:
+                logger.warning("HTTP error resolving URL %s: %s", url, e)
+                return None
+                
+        if not final_url:
+            return None
             
-            # 1. Look for @lat,lng
-            m1 = re.search(r'@([+-]?\d+\.\d+),([+-]?\d+\.\d+)', final_url)
-            if m1:
-                return float(m1.group(1)), float(m1.group(2))
-                
-            # 2. Look for q=lat,lng
-            m2 = re.search(r'[?&]q=([+-]?\d+\.\d+),([+-]?\d+\.\d+)', final_url)
-            if m2:
-                return float(m2.group(1)), float(m2.group(2))
-                
-            # 3. Look for place/lat,lng
-            m3 = re.search(r'place/([+-]?\d+\.\d+),([+-]?\d+\.\d+)', final_url)
-            if m3:
-                return float(m3.group(1)), float(m3.group(2))
+        logger.info("Resolved maps URL %s to final URL %s", url, final_url)
+        
+        # 1. Look for @lat,lng
+        m1 = re.search(r'@([+-]?\d+\.\d+),([+-]?\d+\.\d+)', final_url)
+        if m1:
+            return float(m1.group(1)), float(m1.group(2))
+            
+        # 2. Look for q=lat,lng
+        m2 = re.search(r'[?&]q=([+-]?\d+\.\d+),([+-]?\d+\.\d+)', final_url)
+        if m2:
+            return float(m2.group(1)), float(m2.group(2))
+            
+        # 3. Look for place/lat,lng
+        m3 = re.search(r'place/([+-]?\d+\.\d+),([+-]?\d+\.\d+)', final_url)
+        if m3:
+            return float(m3.group(1)), float(m3.group(2))
+
+        # 4. Look for place name in the URL path, e.g., /place/Agra,+Uttar+Pradesh/
+        m4 = re.search(r'/place/([^/?#]+)', final_url)
+        if m4:
+            place_name = urllib.parse.unquote_plus(m4.group(1))
+            # Clean place name if it contains data parameters (like /data=...)
+            if '/data=' in place_name:
+                place_name = place_name.split('/data=')[0]
+            if 'data=' in place_name:
+                place_name = place_name.split('data=')[0]
+            place_name = place_name.strip()
+            if place_name:
+                logger.info("Extracted place name '%s' from URL, trying to geocode...", place_name)
+                coords = geocode_place_name(place_name)
+                if coords:
+                    return coords
     except Exception as e:
         logger.warning("Failed resolving maps URL %s: %s", url, e)
     return None
