@@ -68,9 +68,10 @@ def create_app():
             # all - this also fixes styling for users whose network/ISP/
             # extensions blocked cdn.tailwindcss.com.
             # unpkg.com is Leaflet's map JS/CSS (used by app.html).
+            # Fonts are the native OS font stack now (no Google Fonts network
+            # dependency), so no font-src / fonts.googleapis.com allowance is needed.
             "script-src 'self' 'unsafe-inline' https://unpkg.com; "
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; "
-            "font-src https://fonts.gstatic.com;",
+            "style-src 'self' 'unsafe-inline' https://unpkg.com;",
         )
         return response
 
