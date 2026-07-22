@@ -54,16 +54,18 @@ def run_due_schedules():
         logger.exception("run_due_schedules failed")
 
 
-def _fire_schedule(conn, sched, now_str):
-    # Resolve which operators to actually send to, same semantics as the
-    # manual /api/send ALL_OPERATORS option.
+def _queue_schedule_messages(conn, sched, now_str, id_prefix="SCH"):
+    """Insert one 'queued' outgoing message per configured operator for this
+    schedule, reusing the same insert shape as a normal manual send. Shared
+    by both the periodic tick (_fire_schedule) and the admin manual trigger,
+    so a one-off fire behaves identically to a real scheduled fire."""
     if sched["sim_operator"] == "ALL_OPERATORS":
         rows = conn.execute("SELECT operator_name FROM gateway_numbers").fetchall()
         operators = [r["operator_name"] for r in rows] or [""]
     else:
         operators = [sched["sim_operator"] or ""]
 
-    base_id = f"SCH-{sched['id']}-{int(time.time() * 1000)}"
+    base_id = f"{id_prefix}-{sched['id']}-{int(time.time() * 1000)}"
     for idx, op in enumerate(operators):
         msg_id = base_id if idx == 0 else f"{base_id}-{idx}"
         conn.execute(
@@ -73,6 +75,10 @@ def _fire_schedule(conn, sched, now_str):
             """,
             (msg_id, sched["owner"], sched["recipient"], sched["text"], now_str, sched["owner"], op),
         )
+
+
+def _fire_schedule(conn, sched, now_str):
+    _queue_schedule_messages(conn, sched, now_str)
 
     next_run = _parse(sched["next_run_at"]) + timedelta(minutes=sched["frequency_minutes"])
     end_at = _parse(sched["end_at"])
@@ -88,6 +94,31 @@ def _fire_schedule(conn, sched, now_str):
             (next_run.strftime("%Y-%m-%d %H:%M:%S"), now_str, sched["id"]),
         )
     conn.commit()
+
+
+def manual_trigger_schedule(schedule_id):
+    """Admin 'Play' button: fire one schedule right now, out of band from its
+    normal cadence. Queues messages exactly like a real tick, but leaves
+    next_run_at untouched so the regular polling cycle is unaffected - this
+    is an extra, one-off send, not a reschedule. Only allowed for active
+    schedules. Returns True on success, False if the schedule can't be
+    triggered (not found / not active)."""
+    conn = get_db()
+    try:
+        sched = conn.execute("SELECT * FROM schedules WHERE id = ?", (schedule_id,)).fetchone()
+        if not sched or sched["status"] != "active":
+            return False
+
+        now_str = _now_str()
+        _queue_schedule_messages(conn, sched, now_str, id_prefix="MANUAL")
+        conn.execute(
+            "UPDATE schedules SET last_run_at = ? WHERE id = ?",
+            (now_str, schedule_id),
+        )
+        conn.commit()
+        return True
+    finally:
+        conn.close()
 
 
 def register_scheduler(app):

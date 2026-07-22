@@ -65,7 +65,8 @@ def init_db():
                 name TEXT NOT NULL,
                 password_hash TEXT NOT NULL,
                 role TEXT DEFAULT 'coworker',
-                allowed_numbers TEXT DEFAULT '*'
+                allowed_numbers TEXT DEFAULT '*',
+                status TEXT DEFAULT 'active'
             )
             """
         )
@@ -100,6 +101,12 @@ def init_db():
         # Safe migration for allowed_numbers column
         try:
             cursor.execute("ALTER TABLE users ADD COLUMN allowed_numbers TEXT DEFAULT '*'")
+        except sqlite3.OperationalError:
+            pass  # column already exists
+
+        # Safe migration for status column (active/suspended)
+        try:
+            cursor.execute("ALTER TABLE users ADD COLUMN status TEXT DEFAULT 'active'")
         except sqlite3.OperationalError:
             pass  # column already exists
 

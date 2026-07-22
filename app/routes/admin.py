@@ -11,6 +11,7 @@ from ..security import check_admin_auth, verify_admin_password, set_admin_passwo
 from ..config import Config
 from ..extensions import limiter
 from .location_resolver import trigger_enrichment
+from ..scheduler import manual_trigger_schedule
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/api/admin")
 
@@ -106,7 +107,9 @@ def admin_users():
 
     conn = get_db()
     if request.method == "GET":
-        rows = conn.execute("SELECT username, name, role, allowed_numbers FROM users").fetchall()
+        rows = conn.execute(
+            "SELECT username, name, role, allowed_numbers, COALESCE(status, 'active') AS status FROM users"
+        ).fetchall()
         conn.close()
         return jsonify({"users": [dict(r) for r in rows]})
 
@@ -147,6 +150,31 @@ def admin_update_user(username):
     conn.commit()
     conn.close()
     return jsonify({"success": True}), 200
+
+
+@admin_bp.route("/users/<username>/status", methods=["PUT"])
+def admin_update_user_status(username):
+    """Suspend or reactivate a coworker's login access. Suspended users are
+    rejected at /api/login and their existing bearer tokens stop working
+    immediately (see security.verify_token)."""
+    if (err := _require_admin()) is not None:
+        return err
+
+    data = request.json or {}
+    new_status = data.get("status", "").strip()
+    if new_status not in ("active", "suspended"):
+        return jsonify({"error": "status must be 'active' or 'suspended'"}), 400
+
+    conn = get_db()
+    row = conn.execute("SELECT username FROM users WHERE username = ?", (username,)).fetchone()
+    if not row:
+        conn.close()
+        return jsonify({"error": "User not found"}), 404
+
+    conn.execute("UPDATE users SET status = ? WHERE username = ?", (new_status, username))
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True, "status": new_status}), 200
 
 
 @admin_bp.route("/users/<username>", methods=["DELETE"])
@@ -317,4 +345,45 @@ def admin_cancel_schedule(schedule_id):
     conn.execute("UPDATE schedules SET status = 'cancelled' WHERE id = ?", (schedule_id,))
     conn.commit()
     conn.close()
+    return jsonify({"success": True}), 200
+
+
+@admin_bp.route("/schedules/<schedule_id>/status", methods=["PUT"])
+def admin_update_schedule_status(schedule_id):
+    """Pause or resume a schedule. Only toggles between 'active' and
+    'paused' - a completed or cancelled schedule can't be revived this way."""
+    if (err := _require_admin()) is not None:
+        return err
+
+    data = request.json or {}
+    new_status = data.get("status", "").strip()
+    if new_status not in ("active", "paused"):
+        return jsonify({"error": "status must be 'active' or 'paused'"}), 400
+
+    conn = get_db()
+    row = conn.execute("SELECT status FROM schedules WHERE id = ?", (schedule_id,)).fetchone()
+    if not row:
+        conn.close()
+        return jsonify({"error": "Schedule not found"}), 404
+
+    if row["status"] not in ("active", "paused"):
+        conn.close()
+        return jsonify({"error": f"Cannot change a {row['status']} schedule"}), 400
+
+    conn.execute("UPDATE schedules SET status = ? WHERE id = ?", (new_status, schedule_id))
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True, "status": new_status}), 200
+
+
+@admin_bp.route("/schedules/<schedule_id>/trigger", methods=["POST"])
+def admin_trigger_schedule(schedule_id):
+    """Manually fire an active schedule once, right now, without disturbing
+    its normal next_run_at cadence."""
+    if (err := _require_admin()) is not None:
+        return err
+
+    ok = manual_trigger_schedule(schedule_id)
+    if not ok:
+        return jsonify({"error": "Schedule not found or not active"}), 400
     return jsonify({"success": True}), 200

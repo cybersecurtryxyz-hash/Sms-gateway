@@ -60,9 +60,11 @@ def verify_coworker_password(username, candidate_password):
         "SELECT * FROM users WHERE username = ?", (username,)
     ).fetchone()
     conn.close()
-    if user and check_password_hash(user["password_hash"], candidate_password):
-        return user
-    return None
+    if not user or not check_password_hash(user["password_hash"], candidate_password):
+        return None
+    if user["status"] == "suspended":
+        return None
+    return user
 
 
 # Alias for compatibility if imported elsewhere
@@ -113,7 +115,7 @@ def verify_token(token):
             "SELECT * FROM users WHERE username = ?", (username,)
         ).fetchone()
         conn.close()
-        if user:
+        if user and user["status"] != "suspended":
             return username
     except Exception:
         pass
