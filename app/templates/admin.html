@@ -438,11 +438,24 @@
                         <div class="pb-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                             <div>
                                 <h3 class="text-sm font-extrabold text-slate-900">Active Search Automation Schedules</h3>
-                                <p class="text-xs text-slate-500 mt-0.5">Periodic / date-range searches queued by coworkers from their own accounts. Admin can monitor and stop them here.</p>
+                                <p class="text-xs text-slate-500 mt-0.5">Periodic / date-range searches queued by coworkers from their own accounts. Admin can monitor, pause/resume, trigger, or stop them here.</p>
                             </div>
-                            <button id="btn-refresh-schedules" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/60 text-xs font-bold px-3.5 py-2 rounded-lg transition shrink-0">
-                                Refresh
-                            </button>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <select id="sched-status-filter" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 focus:outline-none focus:border-blue-700 transition">
+                                    <option value="all">All States</option>
+                                    <option value="active">Active Only</option>
+                                    <option value="paused">Paused Only</option>
+                                </select>
+                                <div class="relative">
+                                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                    </span>
+                                    <input type="text" id="sched-search-input" placeholder="Search targets/owners..." class="bg-slate-50 border border-slate-200 rounded-xl pl-8 pr-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-700/20 transition placeholder:text-slate-400 min-w-[170px]">
+                                </div>
+                                <button id="btn-refresh-schedules" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/60 text-xs font-bold px-3.5 py-2 rounded-lg transition shrink-0">
+                                    Refresh
+                                </button>
+                            </div>
                         </div>
                         <div id="schedules-list" class="space-y-4 max-h-[600px] overflow-y-auto pr-1"></div>
                     </div>
@@ -745,6 +758,7 @@
 
             filtered.forEach(u => {
                 const metrics = computeUserMetrics(u.username);
+                const isSuspended = u.status === 'suspended';
                 const card = document.createElement("div");
                 card.className = "p-4 border border-slate-200 rounded-2xl bg-slate-50 hover:bg-white hover:border-blue-200 hover:shadow-md transition-all duration-200 flex flex-col md:flex-row md:items-center justify-between gap-4";
 
@@ -755,7 +769,10 @@
                         <div class="flex items-center gap-2.5">
                             <div class="w-9 h-9 rounded-full bg-blue-100 text-blue-700 font-extrabold text-xs flex items-center justify-center shrink-0">${escapeHtml(initials)}</div>
                             <div class="min-w-0">
-                                <div class="font-extrabold text-xs text-slate-900 truncate">${escapeHtml(u.name)}</div>
+                                <div class="font-extrabold text-xs text-slate-900 truncate flex items-center gap-2">
+                                    <span>${escapeHtml(u.name)}</span>
+                                    ${isSuspended ? `<span class="text-[9px] font-extrabold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded uppercase tracking-wider">Suspended</span>` : ``}
+                                </div>
                                 <div class="flex items-center gap-2 text-[10px] text-slate-500 font-semibold mt-0.5">
                                     <span class="text-blue-700 font-bold code-font">@${escapeHtml(u.username)}</span>
                                 </div>
@@ -786,6 +803,7 @@
                         </div>
                         <div class="flex items-center gap-2">
                             <button class="view-logs-btn text-xs bg-white hover:bg-blue-50 text-blue-700 border border-slate-200 hover:border-blue-200 font-extrabold px-3 py-2 rounded-xl transition" title="View logs associated with this user">View Logs</button>
+                            <button class="toggle-status-btn text-xs px-3 py-2 rounded-xl font-extrabold transition ${isSuspended ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100' : 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100'}" title="${isSuspended ? 'Reactivate this user' : 'Suspend login access for this user'}">${isSuspended ? 'Activate' : 'Suspend'}</button>
                             <button class="remove-user-btn p-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-100 hover:border-rose-200 rounded-xl transition" title="Revoke and delete user account">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
                             </button>
@@ -801,6 +819,9 @@
                     switchTab("messages");
                     const sel = document.getElementById("msg-user-filter");
                     if (sel) { sel.value = u.username; applyMessageFilters(); }
+                });
+                card.querySelector(".toggle-status-btn").addEventListener("click", () => {
+                    toggleUserStatus(u.username, isSuspended ? 'active' : 'suspended');
                 });
                 card.querySelector(".remove-user-btn").addEventListener("click", () => deleteUser(u.username));
 
@@ -819,6 +840,18 @@
                     body: JSON.stringify({ allowed_numbers: allowedNumbers })
                 });
                 if (r.ok) { loadUsers(); } else { const d = await r.json(); alert(d.error || "Failed to update user"); }
+            } catch (err) { alert("Network communication error"); }
+        }
+
+        async function toggleUserStatus(username, newStatus) {
+            const pw = sessionStorage.getItem(ADMIN_PASS_KEY);
+            try {
+                const r = await fetch(`/api/admin/users/${username}/status`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json", "X-Admin-Password": pw },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                if (r.ok) { loadUsers(); } else { const d = await r.json(); alert(d.error || "Failed to update user status"); }
             } catch (err) { alert("Network communication error"); }
         }
 
@@ -1130,15 +1163,40 @@
             document.getElementById("sched-stat-total").textContent = allSchedules.length;
         }
 
+        function scheduleMatchesFilters(s) {
+            const query = (document.getElementById("sched-search-input").value || "").trim().toLowerCase();
+            const statusFilter = document.getElementById("sched-status-filter").value;
+
+            const matchesText = !query ||
+                (s.recipient || "").toLowerCase().includes(query) ||
+                (s.owner || "").toLowerCase().includes(query) ||
+                (s.owner_name || "").toLowerCase().includes(query) ||
+                (s.text || "").toLowerCase().includes(query);
+
+            const matchesStatus = statusFilter === "all" || s.status === statusFilter;
+
+            return matchesText && matchesStatus;
+        }
+
         function renderSchedules() {
             const container = document.getElementById("schedules-list");
             container.innerHTML = "";
+
+            const filtered = allSchedules.filter(scheduleMatchesFilters);
+
             if (allSchedules.length === 0) {
                 container.innerHTML = `<div class="py-16 text-center text-slate-400"><p class="font-extrabold text-sm text-slate-600">No scheduled searches yet.</p></div>`;
                 return;
             }
-            allSchedules.forEach(s => {
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="py-16 text-center text-slate-400"><p class="font-extrabold text-sm text-slate-600">No matching search schedules found.</p><p class="text-xs text-slate-400 mt-1">Try modifying your search or status filter options.</p></div>`;
+                return;
+            }
+
+            filtered.forEach(s => {
                 const isActive = s.status === 'active';
+                const isPaused = s.status === 'paused';
+                const canToggle = isActive || isPaused;
                 const card = document.createElement("div");
                 card.className = `p-5 border rounded-2xl relative overflow-hidden ${isActive ? 'bg-gradient-to-r from-blue-50/10 to-transparent border-slate-200 hover:border-blue-300' : 'bg-slate-50/50 border-slate-200 opacity-80'}`;
                 card.innerHTML = `
@@ -1167,25 +1225,68 @@
                             </div>
                         </div>
                         <div class="flex items-center gap-1.5 shrink-0 bg-slate-50 p-1.5 rounded-xl border border-slate-200 shadow-sm">
-                            ${isActive ? `<button class="stop-sched-btn p-2 bg-white hover:bg-rose-50 text-rose-600 hover:text-rose-700 border border-slate-200 hover:border-rose-200 rounded-lg transition" title="Stop recurring schedule">
+                            ${isActive ? `<button class="trigger-sched-btn p-2 bg-white hover:bg-emerald-50 text-emerald-600 hover:text-emerald-700 border border-slate-200 hover:border-emerald-200 rounded-lg transition" title="Trigger one message now">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+                            </button>` : ``}
+                            ${canToggle ? `<button class="toggle-sched-btn p-2 border rounded-lg transition ${isActive ? 'bg-white hover:bg-amber-50 text-amber-600 hover:text-amber-700 border-slate-200 hover:border-amber-200' : 'bg-white hover:bg-blue-50 text-blue-600 hover:text-blue-700 border-slate-200 hover:border-blue-200'}" title="${isActive ? 'Pause automated polling' : 'Resume automated polling'}">
+                                ${isActive
+                                    ? `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>`
+                                    : `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="6 4 20 12 6 20 6 4"/></svg>`}
+                            </button>` : ``}
+                            ${isActive || isPaused ? `<button class="stop-sched-btn p-2 bg-white hover:bg-rose-50 text-rose-600 hover:text-rose-700 border border-slate-200 hover:border-rose-200 rounded-lg transition" title="Stop recurring schedule">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
                             </button>` : `<span class="text-[10px] text-slate-400 font-bold px-2">—</span>`}
                         </div>
                     </div>
                 `;
+                const triggerBtn = card.querySelector(".trigger-sched-btn");
+                if (triggerBtn) triggerBtn.addEventListener("click", () => triggerAdminSchedule(s.id));
+                const toggleBtn = card.querySelector(".toggle-sched-btn");
+                if (toggleBtn) toggleBtn.addEventListener("click", () => toggleAdminSchedule(s.id, isActive ? 'paused' : 'active'));
                 const stopBtn = card.querySelector(".stop-sched-btn");
                 if (stopBtn) stopBtn.addEventListener("click", () => cancelAdminSchedule(s.id));
                 container.appendChild(card);
             });
         }
 
+        ["sched-search-input", "sched-status-filter"].forEach(id => {
+            const el = document.getElementById(id);
+            el.addEventListener(el.tagName === "SELECT" ? "change" : "input", renderSchedules);
+        });
+
         async function cancelAdminSchedule(scheduleId) {
             const pw = sessionStorage.getItem(ADMIN_PASS_KEY);
-            if (!confirm("Stop this scheduled search?")) return;
+            if (!confirm("Stop this scheduled search? This cannot be resumed afterwards.")) return;
             try {
                 const r = await fetch(`/api/admin/schedules/${scheduleId}`, { method: "DELETE", headers: { "X-Admin-Password": pw } });
                 if (r.ok) loadSchedules();
+                else { const d = await r.json(); alert(d.error || "Failed to stop scheduled search."); }
             } catch (err) { alert("Failed to stop scheduled search."); }
+        }
+
+        async function toggleAdminSchedule(scheduleId, newStatus) {
+            const pw = sessionStorage.getItem(ADMIN_PASS_KEY);
+            try {
+                const r = await fetch(`/api/admin/schedules/${scheduleId}/status`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json", "X-Admin-Password": pw },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                if (r.ok) loadSchedules();
+                else { const d = await r.json(); alert(d.error || "Failed to update schedule status."); }
+            } catch (err) { alert("Network communication error"); }
+        }
+
+        async function triggerAdminSchedule(scheduleId) {
+            const pw = sessionStorage.getItem(ADMIN_PASS_KEY);
+            try {
+                const r = await fetch(`/api/admin/schedules/${scheduleId}/trigger`, {
+                    method: "POST",
+                    headers: { "X-Admin-Password": pw }
+                });
+                if (r.ok) { loadSchedules(); loadMessages(); }
+                else { const d = await r.json(); alert(d.error || "Failed to trigger schedule."); }
+            } catch (err) { alert("Network communication error"); }
         }
 
         document.getElementById("btn-refresh-schedules").addEventListener("click", loadSchedules);
