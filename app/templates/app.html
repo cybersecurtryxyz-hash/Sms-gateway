@@ -1334,7 +1334,13 @@
             }
 
             await sendMessage(to, text, simOperator);
-            openThread(to);
+
+            // allMessages is now fresh (sendMessage awaits loadMessages). Find the
+            // message we just sent and open its real conversation identity - this
+            // may differ from the raw "to" number once the target_number embedded
+            // in the text gets extracted, and conversations are grouped by that.
+            const justSent = allMessages.find(m => m.direction === "out" && m.recipient === to && m.text === text);
+            openThread(justSent ? contactIdentityFor(justSent) : to);
         });
 
         // --- Scheduled (periodic / date-range) searches --------------------
@@ -1469,7 +1475,7 @@
                     return;
                 }
 
-                loadMessages();
+                await loadMessages();
             } catch (err) {
                 alert("Failed to queue message. Check that the server is online.");
             }
