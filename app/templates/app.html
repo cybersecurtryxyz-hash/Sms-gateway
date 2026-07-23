@@ -958,7 +958,7 @@
                 }
 
                 const isActive = activeContact && (normalizePhone(conv.contact) === normalizePhone(activeContact));
-                const companyName = getCompanyName(conv.contact);
+                const companyName = getCompanyNameFromMessages(conv.messages);
                 const row = document.createElement("div");
                 row.className = `flex items-center gap-3 px-3 py-3 rounded-xl cursor-pointer transition ${isActive ? "bg-blue-50 border border-blue-100" : "hover:bg-slate-50 border border-transparent"}`;
                 row.innerHTML = `
@@ -998,12 +998,27 @@
             });
         }
 
-        // Resolve the telecom company name for a contact number (based on the
-        // pre-defined numbers list), falling back to the raw number if unknown.
+        // Every message belonging to a given conversation/contact.
+        function getMessagesForContact(contact) {
+            const targetKey = normalizePhone(contact);
+            return allMessages.filter(m => normalizePhone(contactIdentityFor(m)) === targetKey);
+        }
+
+        // Resolve the telecom company name for a conversation from the actual
+        // sim_operator recorded on its messages (the operator picked when the
+        // query was sent) - NOT by matching the displayed contact number
+        // against the gateway numbers list, since the displayed contact is
+        // often the target_number embedded in the message text, not the
+        // company's own gateway number.
+        function getCompanyNameFromMessages(msgs) {
+            const outMsg = msgs.find(m => m.direction === "out" && m.sim_operator && m.sim_operator !== "ALL_OPERATORS");
+            if (outMsg) return outMsg.sim_operator;
+            const anyMsg = msgs.find(m => m.sim_operator && m.sim_operator !== "ALL_OPERATORS");
+            return anyMsg ? anyMsg.sim_operator : null;
+        }
+
         function getCompanyName(contact) {
-            const normalizedContact = normalizePhone(contact);
-            const matched = allowedNumbers.find(n => normalizePhone(n.phone_number) === normalizedContact);
-            return matched ? matched.operator_name : null;
+            return getCompanyNameFromMessages(getMessagesForContact(contact));
         }
 
         // --- Thread (single conversation) view ---------------------------
@@ -1012,36 +1027,32 @@
             if (!selectThread) return;
             selectThread.innerHTML = "";
 
-            const normalizedContact = normalizePhone(contact);
-            const matched = allowedNumbers.find(n => normalizePhone(n.phone_number) === normalizedContact);
+            const companyName = getCompanyName(contact);
 
-            if (matched) {
+            allowedNumbers.forEach(n => {
                 const opt = document.createElement("option");
-                opt.value = matched.operator_name;
-                opt.textContent = matched.operator_name;
+                opt.value = n.operator_name;
+                opt.textContent = n.operator_name;
                 selectThread.appendChild(opt);
-            } else {
-                // Fallback: if no exact match, show all allowed numbers
-                allowedNumbers.forEach(n => {
-                    const opt = document.createElement("option");
-                    opt.value = n.operator_name;
-                    opt.textContent = n.operator_name;
-                    selectThread.appendChild(opt);
-                });
-                
-                if (allowedNumbers.length > 0) {
-                    const optAll = document.createElement("option");
-                    optAll.value = "ALL_OPERATORS";
-                    optAll.textContent = "All Numbers (Send via All)";
-                    selectThread.appendChild(optAll);
-                }
-                
-                if (allowedNumbers.length === 0) {
-                    const opt = document.createElement("option");
-                    opt.value = "";
-                    opt.textContent = "Default SIM";
-                    selectThread.appendChild(opt);
-                }
+            });
+
+            if (allowedNumbers.length > 0) {
+                const optAll = document.createElement("option");
+                optAll.value = "ALL_OPERATORS";
+                optAll.textContent = "All Numbers (Send via All)";
+                selectThread.appendChild(optAll);
+            }
+
+            if (allowedNumbers.length === 0) {
+                const opt = document.createElement("option");
+                opt.value = "";
+                opt.textContent = "Default SIM";
+                selectThread.appendChild(opt);
+            }
+
+            // Pre-select whichever operator this conversation was actually sent through
+            if (companyName && Array.from(selectThread.options).some(o => o.value === companyName)) {
+                selectThread.value = companyName;
             }
         }
 
