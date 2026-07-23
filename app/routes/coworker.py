@@ -12,6 +12,7 @@ from ..config import Config
 from ..extensions import limiter
 from ..scheduler import ALLOWED_FREQUENCIES_MINUTES
 from .location_resolver import trigger_enrichment, reverse_geocode
+from .phone_extractor import extract_first
 
 coworker_bp = Blueprint("coworker", __name__, url_prefix="/api")
 
@@ -216,6 +217,12 @@ def coworker_send_sms():
         conn.close()
         return jsonify({"error": "You are not authorized to send messages to this number."}), 400
 
+    # The customer/account number being asked about, embedded in the message
+    # text itself (e.g. "BAL 9876543210"). Stored alongside the message so
+    # conversations/location history can be grouped by this number instead of
+    # by whichever gateway number the operator happens to reply from.
+    target_number = extract_first(text)
+
     if sim_operator == "ALL_OPERATORS":
         # Fetch all gateway numbers
         rows = conn.execute("SELECT phone_number, operator_name FROM gateway_numbers").fetchall()
@@ -239,10 +246,10 @@ def coworker_send_sms():
             msg_id = f"MSG-{base_time}-{idx}"
             conn.execute(
                 """
-                INSERT INTO messages (id, direction, sender, recipient, text, time, status, owner, sim_operator)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO messages (id, direction, sender, recipient, text, time, status, owner, sim_operator, target_number)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
-                (msg_id, "out", username, to, text, time_str, "queued", username, op),
+                (msg_id, "out", username, to, text, time_str, "queued", username, op, target_number),
             )
             inserted_ids.append(msg_id)
         
@@ -255,10 +262,10 @@ def coworker_send_sms():
 
         conn.execute(
             """
-            INSERT INTO messages (id, direction, sender, recipient, text, time, status, owner, sim_operator)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO messages (id, direction, sender, recipient, text, time, status, owner, sim_operator, target_number)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (msg_id, "out", username, to, text, time_str, "queued", username, sim_operator),
+            (msg_id, "out", username, to, text, time_str, "queued", username, sim_operator, target_number),
         )
         conn.commit()
         conn.close()

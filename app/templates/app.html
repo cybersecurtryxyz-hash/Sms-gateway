@@ -3,294 +3,282 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SMS Integrator</title>
+    <title>SMS Integrator - User Console</title>
     <!-- Tailwind CSS (locally built, no external CDN dependency) -->
     <link rel="stylesheet" href="/static/css/tailwind.css">
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#4F46E5">
-    <!-- Google Fonts Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <meta name="theme-color" content="#1d4ed8">
+    <!-- No external Google Fonts CDN: that dependency caused the same class of bug as the old
+         Tailwind Play CDN issue — on a slow/blocked connection the fonts fail to load and headings
+         silently fall back to a different-looking system font, so titles look inconsistent with the
+         rest of the page. Using a native OS font stack renders identically, instantly, every time. -->
     <!-- Leaflet Map CSS & JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-            background-attachment: fixed;
-            color: #1e293b;
+        :root {
+            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+            --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
         }
-        .code-font {
-            font-family: 'JetBrains Mono', monospace;
-        }
-        /* Thin, modern scrollbars */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 99px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #1e3a8a;
-        }
-        .glass-card {
-            background-color: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(30, 58, 138, 0.08);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .glass-card:hover {
-            border-color: rgba(30, 58, 138, 0.16);
-            box-shadow: 0 10px 30px -4px rgba(30, 58, 138, 0.08);
-        }
-        .inner-dark-card {
-            background-color: rgba(248, 250, 252, 0.85);
-            border: 1px solid rgba(30, 58, 138, 0.05);
-        }
-        .custom-div-icon {
-            background: transparent !important;
-            border: none !important;
-        }
+        body { font-family: var(--font-sans); }
+        .code-font { font-family: var(--font-mono); }
+        h1, h2, h3, h4 { font-family: var(--font-sans); }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+        ::-webkit-scrollbar-thumb:hover { background: #1e3a8a; }
+        [data-view-panel] { animation: fadein .15s ease-out; }
+        @keyframes fadein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+        .custom-div-icon { background: transparent !important; border: none !important; }
     </style>
 </head>
-<body class="text-slate-800 min-h-screen pb-8">
+<body class="min-h-screen bg-slate-50 font-sans text-slate-800 antialiased">
 
-    <!-- Auth Screen -->
-    <div id="screen-login" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden" style="background: radial-gradient(circle at 50% 50%, #f8fafc 0%, #e2e8f0 100%);">
-        <div class="w-full max-w-md bg-white/90 border border-slate-200 p-8 rounded-2xl shadow-[0_10px_40px_rgba(30,58,138,0.06)] backdrop-blur-xl">
-            <div class="text-center mb-6">
-                <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-700 to-indigo-600 flex items-center justify-center text-white mx-auto mb-3 shadow-[0_4px_20px_rgba(30,58,138,0.25)]">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                </div>
-                <h1 class="text-xl font-extrabold text-slate-900 tracking-tight">Welcome Back</h1>
-                <p class="text-xs text-slate-500 mt-1">Sign in with your credentials</p>
+<!-- ==================== AUTH OVERLAY ==================== -->
+<div id="screen-login" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-md hidden">
+    <div class="w-full max-w-md bg-white border border-slate-200 p-8 rounded-2xl shadow-2xl relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-1.5 bg-blue-700"></div>
+        <div class="text-center mb-6">
+            <div class="w-16 h-16 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-700 mx-auto mb-4 shadow-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
             </div>
-            <form id="form-login" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-bold text-blue-700 uppercase tracking-wider mb-1.5">Username</label>
-                    <input type="text" id="login-username" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-700/20 transition placeholder:text-slate-400" placeholder="e.g. rahul">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-blue-700 uppercase tracking-wider mb-1.5">Password</label>
-                    <input type="password" id="login-password" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:outline-none focus:border-blue-700 focus:ring-1 focus:ring-blue-700/20 transition placeholder:text-slate-400" placeholder="••••••••">
-                </div>
-                <button type="submit" class="w-full bg-gradient-to-r from-blue-700 to-indigo-600 hover:from-blue-600 hover:to-indigo-500 py-3.5 rounded-xl font-bold text-sm text-white transition active:scale-[0.98] shadow-lg shadow-blue-700/10">
-                    Sign In
-                </button>
-            </form>
-            <p id="login-error" class="text-rose-500 font-semibold text-xs text-center mt-4 min-h-[1.5rem]"></p>
+            <h1 class="text-2xl font-semibold text-slate-900 tracking-tight">Welcome Back</h1>
+            <p class="text-xs text-slate-500 mt-1.5 leading-relaxed">Sign in with your gateway credentials to continue.</p>
         </div>
-    </div>
-
-    <!-- Main Dashboard -->
-    <div id="screen-dashboard" class="hidden">
-
-        <!-- Navigation Bar -->
-        <nav class="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-40 shadow-sm">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-                <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-700 to-indigo-600 flex items-center justify-center text-white shadow-[0_4px_12px_rgba(30,58,138,0.15)]">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                    </div>
-                    <div>
-                        <span class="font-extrabold text-sm tracking-wide text-slate-800 uppercase">SMS Integrator</span>
-                        <span id="user-display-name" class="text-[10px] text-blue-700 font-extrabold tracking-widest uppercase ml-1.5 px-1.5 py-0.5 rounded bg-blue-50 border border-blue-100 shadow-sm">Loading...</span>
-                    </div>
-                </div>
-                <div class="flex items-center gap-2">
-                    <button id="btn-export-csv" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3.5 py-2 rounded-lg transition-all active:scale-95 flex items-center gap-1.5 shadow-sm shadow-emerald-600/10 whitespace-nowrap" style="background-color: #059669 !important; color: #ffffff !important;">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="stroke: #ffffff !important;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                        Export Excel
-                    </button>
-                    <button id="btn-logout" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 font-bold text-xs px-3.5 py-2 rounded-lg transition-all active:scale-95">
-                        Logout
-                    </button>
-                </div>
+        <form id="form-login" class="space-y-4">
+            <div>
+                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Username</label>
+                <input type="text" id="login-username" required placeholder="e.g. rahul"
+                    class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:outline-none focus:border-blue-700 focus:ring-2 focus:ring-blue-700/10 transition placeholder:text-slate-400">
             </div>
+            <div>
+                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Password</label>
+                <input type="password" id="login-password" required placeholder="••••••••"
+                    class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 focus:outline-none focus:border-blue-700 focus:ring-2 focus:ring-blue-700/10 transition placeholder:text-slate-400">
+            </div>
+            <button type="submit" class="w-full bg-blue-700 hover:bg-blue-800 text-white py-3.5 rounded-xl font-bold text-sm tracking-wide transition shadow-lg shadow-blue-700/15 active:scale-[0.99]">
+                Sign In
+            </button>
+        </form>
+        <p id="login-error" class="text-rose-600 font-semibold text-xs text-center mt-4 min-h-[1rem] empty:hidden bg-rose-50 border border-rose-100 rounded-lg py-2 px-3"></p>
+    </div>
+</div>
+
+<!-- ==================== MAIN LAYOUT ==================== -->
+<div id="screen-dashboard" class="hidden">
+<div class="flex flex-col md:flex-row min-h-screen">
+
+    <!-- Sidebar -->
+    <aside class="w-full md:w-72 bg-white border-b md:border-b-0 md:border-r border-slate-200 flex flex-col shrink-0 md:h-screen md:sticky md:top-0">
+
+        <div class="p-6 border-b border-slate-100 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-blue-700 flex items-center justify-center text-white shadow-md shadow-blue-700/10 shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </div>
+            <div class="min-w-0">
+                <h1 class="font-semibold text-sm tracking-tight text-slate-900 uppercase leading-none truncate">SMS Integrator</h1>
+                <span class="text-[9px] font-semibold text-blue-700 bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded uppercase mt-1 inline-block tracking-wide">User Console</span>
+            </div>
+        </div>
+
+        <div class="px-6 py-3.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-xs gap-2">
+            <div class="flex items-center gap-2 min-w-0">
+                <svg class="w-3.5 h-3.5 text-blue-700 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 00.096.837l-1.32 2.54a1 1 0 00-.097.838l.548 2.2a1 1 0 01.096.837M17 11a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                <span id="integrator-sim-label" class="font-semibold text-slate-700 text-[11px] truncate">Loading...</span>
+            </div>
+            <span id="user-display-name" class="text-[10px] text-blue-700 font-extrabold tracking-widest uppercase px-1.5 py-0.5 rounded bg-blue-50 border border-blue-100 shrink-0">...</span>
+        </div>
+
+        <nav class="flex-1 p-4 space-y-1.5 overflow-y-auto">
+            <button type="button" id="tab-btn-chat" data-tab-btn="chat" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold transition-all duration-150 hover:bg-slate-50 bg-blue-50 text-blue-700 border border-blue-100 shadow-sm">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                <span>Conversations</span>
+            </button>
+            <button type="button" id="tab-btn-logs" data-tab-btn="logs" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold transition-all duration-150 hover:bg-slate-50 hover:text-slate-700 text-slate-500">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+                <span>Message Logs</span>
+            </button>
+            <button type="button" id="tab-btn-links" data-tab-btn="links" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold transition-all duration-150 hover:bg-slate-50 hover:text-slate-700 text-slate-500">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                <span>Extracted Links</span>
+            </button>
+            <button type="button" id="tab-btn-schedules" data-tab-btn="schedules" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold transition-all duration-150 hover:bg-slate-50 hover:text-slate-700 text-slate-500">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                <span>Scheduled Searches</span>
+            </button>
+            <button type="button" id="tab-btn-locations" data-tab-btn="locations" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-semibold transition-all duration-150 hover:bg-slate-50 hover:text-slate-700 text-slate-500">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                <span>Locations</span>
+            </button>
         </nav>
 
-        <!-- Tab Navigation Bar -->
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
-            <div class="flex border-b border-slate-200">
-                <button id="tab-btn-chat" class="px-5 py-3 border-b-2 border-blue-700 text-blue-700 font-extrabold text-sm tracking-wide transition flex items-center gap-2 focus:outline-none">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
-                    Chat View
-                </button>
-                <button id="tab-btn-logs" class="px-5 py-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 font-bold text-sm tracking-wide transition flex items-center gap-2 focus:outline-none">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
-                    Message Logs
-                </button>
-                <button id="tab-btn-links" class="px-5 py-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 font-bold text-sm tracking-wide transition flex items-center gap-2 focus:outline-none">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
-                    Extracted Links
-                </button>
+        <div class="p-4 border-t border-slate-100 space-y-2">
+            <button id="btn-export-csv" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] py-2.5 rounded-lg transition flex items-center justify-center gap-1.5 shadow-sm shadow-emerald-600/10" style="background-color: #059669 !important; color: #ffffff !important;">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="stroke: #ffffff !important;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                Export Excel
+            </button>
+            <button id="btn-logout" class="w-full bg-slate-100 hover:bg-rose-50 hover:text-rose-700 text-slate-600 border border-slate-200 font-bold text-[11px] py-2.5 rounded-lg transition text-center">
+                Logout
+            </button>
+        </div>
+    </aside>
+
+    <!-- Content -->
+    <main class="flex-1 min-w-0 p-6 md:p-10 space-y-8">
+
+        <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-200">
+            <div>
+                <div class="flex items-center gap-2 text-xs text-slate-400 font-bold uppercase tracking-wider">
+                    <span>User Console</span><span>/</span>
+                    <span id="header-crumb" class="text-blue-700 font-semibold">Conversations</span>
+                </div>
+                <h1 id="header-title" class="text-2xl md:text-3xl font-semibold text-slate-950 tracking-tight mt-1.5">Conversations</h1>
+            </div>
+        </header>
+
+        <!-- ============ CHAT VIEW PANEL ============ -->
+        <div id="view-chat" data-view-panel="chat" class="block space-y-8">
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                <!-- Left: Conversations List -->
+                <section class="lg:col-span-1 bg-white border border-slate-200/80 rounded-xl shadow-sm flex flex-col h-[600px] overflow-hidden">
+                    <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+                        <div>
+                            <h2 class="text-xs font-bold text-blue-700 uppercase tracking-wide">Conversations</h2>
+                            <p class="text-[11px] text-slate-400 mt-1">Active SMS threads</p>
+                        </div>
+                        <button id="btn-new-conversation" class="bg-blue-700 hover:bg-blue-800 text-white w-8 h-8 rounded-lg flex items-center justify-center shadow-sm transition active:scale-95 shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
+                        </button>
+                    </div>
+                    <div id="conversations-list" class="flex-1 overflow-y-auto p-2 space-y-1">
+                        <!-- Dynamic conversation rows -->
+                    </div>
+                </section>
+
+                <!-- Right: Thread / New Conversation / Empty state -->
+                <section class="lg:col-span-2 bg-white border border-slate-200/80 rounded-xl shadow-sm flex flex-col h-[600px] overflow-hidden">
+
+                    <!-- Empty state -->
+                    <div id="panel-empty" class="flex-1 flex flex-col items-center justify-center text-slate-400">
+                        <div class="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center mb-3 text-blue-700">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+                        </div>
+                        <span class="text-sm font-semibold text-slate-800">Select a conversation</span>
+                        <span class="text-xs text-slate-500 mt-1">or start a new one with the + button</span>
+                    </div>
+
+                    <!-- Thread view -->
+                    <div id="panel-thread" class="flex-1 flex-col overflow-hidden hidden">
+                        <div class="border-b border-slate-100 p-4 flex items-center justify-between">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-9 h-9 rounded-full bg-slate-100 border border-slate-200 text-blue-700 flex items-center justify-center shrink-0">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                </div>
+                                <div class="min-w-0">
+                                    <div id="thread-contact-number" class="text-sm font-extrabold text-slate-800 code-font truncate">—</div>
+                                    <div class="text-[11px] text-slate-500 font-medium">SMS conversation</div>
+                                </div>
+                            </div>
+                            <button id="btn-show-history-map" class="hidden bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200/60 text-xs font-bold px-3 py-1.5 rounded-lg transition active:scale-95 flex items-center gap-1.5 shadow-sm whitespace-nowrap shrink-0">
+                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                Location History (0)
+                            </button>
+                        </div>
+                        <div id="thread-messages" class="flex-1 overflow-y-auto p-5 space-y-3.5 flex flex-col">
+                            <!-- Dynamic bubbles -->
+                        </div>
+                        <form id="form-send-thread" class="p-3.5 bg-white border-t border-slate-100 flex gap-2 items-center">
+                            <select id="thread-sim-operator" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 text-slate-800 text-sm focus:outline-none focus:border-blue-700 transition" title="Select Sender Operator">
+                                <!-- Populated dynamically -->
+                            </select>
+                            <textarea id="thread-text" rows="1" required class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 text-sm focus:outline-none focus:border-blue-700 transition resize-none placeholder:text-slate-400" placeholder="Type a message..."></textarea>
+                            <button type="submit" class="h-[46px] w-[46px] flex items-center justify-center bg-blue-700 hover:bg-blue-800 text-white rounded-xl shadow-sm active:scale-95 transition shrink-0">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- New conversation form -->
+                    <div id="panel-new-conversation" class="flex-1 flex-col overflow-hidden hidden">
+                        <div class="border-b border-slate-100 p-4 flex items-center gap-3">
+                            <button id="btn-new-conversation-back" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition shrink-0">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
+                            </button>
+                            <div class="text-sm font-bold text-slate-800">New Conversation</div>
+                        </div>
+                        <form id="form-new-conversation" class="p-6 space-y-4 max-w-md overflow-y-auto">
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Recipient Telecom Company</label>
+                                <select id="new-conv-to" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 text-sm focus:outline-none focus:border-blue-700 transition">
+                                    <option value="" disabled selected>Select Telecom Company...</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Message</label>
+                                <textarea id="new-conv-text" rows="4" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 text-sm focus:outline-none focus:border-blue-700 transition resize-none placeholder:text-slate-400" placeholder="Type your message..."></textarea>
+                            </div>
+
+                            <!-- Search mode: one-time vs recurring over a date range -->
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Search Mode</label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <button type="button" id="mode-btn-onetime" class="search-mode-btn px-3 py-2.5 rounded-xl text-xs font-bold border transition bg-blue-700 text-white border-blue-700">
+                                        One Time Search
+                                    </button>
+                                    <button type="button" id="mode-btn-scheduled" class="search-mode-btn px-3 py-2.5 rounded-xl text-xs font-bold border transition bg-slate-50 text-slate-600 border-slate-200">
+                                        Date Range / Periodic
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div id="schedule-options" class="hidden space-y-3 bg-slate-50 border border-slate-200 rounded-xl p-4">
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">From (Start)</label>
+                                        <input type="datetime-local" id="schedule-start" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-slate-900 text-xs focus:outline-none focus:border-blue-700 transition">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">To (End)</label>
+                                        <input type="datetime-local" id="schedule-end" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-slate-900 text-xs focus:outline-none focus:border-blue-700 transition">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Repeat Every</label>
+                                    <select id="schedule-frequency" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-slate-900 text-xs focus:outline-none focus:border-blue-700 transition">
+                                        <option value="5">5 minutes</option>
+                                        <option value="15">15 minutes</option>
+                                        <option value="45">45 minutes</option>
+                                        <option value="60" selected>60 minutes</option>
+                                        <option value="120">2 hours</option>
+                                        <option value="240">4 hours</option>
+                                        <option value="480">8 hours</option>
+                                        <option value="720">12 hours</option>
+                                        <option value="1440">Daily (once a day)</option>
+                                    </select>
+                                </div>
+                                <p class="text-[11px] text-slate-500 leading-snug">The same message above will be re-sent automatically to this number on this schedule until the end date/time.</p>
+                            </div>
+
+                            <button type="submit" id="btn-new-conv-submit" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-3.5 rounded-xl text-sm transition shadow-sm active:scale-[0.98]">
+                                Send Message
+                            </button>
+                        </form>
+                    </div>
+
+                </section>
+
             </div>
         </div>
 
-        <!-- Chat View Tab Panel -->
-        <div id="view-chat" class="block">
-            <!-- Content Workspace -->
-            <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-            <!-- Left: Conversations List -->
-            <section class="lg:col-span-1 glass-card rounded-2xl shadow-xl flex flex-col h-[680px] overflow-hidden">
-                <div class="p-5 border-b border-slate-200/60 flex items-center justify-between">
+        <!-- ============ MESSAGE LOGS PANEL ============ -->
+        <div id="view-logs" data-view-panel="logs" class="hidden">
+            <div class="bg-white border border-slate-200/80 rounded-xl shadow-sm p-6 flex flex-col min-h-[580px]">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-5 border-b border-slate-100 gap-4 mb-6">
                     <div>
-                        <h2 class="text-xs font-extrabold text-blue-700 uppercase tracking-widest">Conversations</h2>
-                        <p class="text-[11px] text-slate-500 mt-1 flex items-center">
-                            <svg class="w-3 h-3 text-blue-700 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 00.096.837l-1.32 2.54a1 1 0 00-.097.838l.548 2.2a1 1 0 01.096.837M17 11a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                            <span id="integrator-sim-label" class="font-semibold">Loading...</span>
-                        </p>
-                    </div>
-                    <button id="btn-new-conversation" class="bg-gradient-to-tr from-blue-700 to-indigo-600 hover:from-blue-600 hover:to-indigo-500 text-white w-8 h-8 rounded-lg flex items-center justify-center shadow-md shadow-blue-700/10 transition active:scale-95 shrink-0">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
-                    </button>
-                </div>
-                <div id="conversations-list" class="flex-1 overflow-y-auto p-2 space-y-1">
-                    <!-- Dynamic conversation rows -->
-                </div>
-            </section>
-
-            <!-- Right: Thread / New Conversation / Empty state -->
-            <section class="lg:col-span-2 glass-card rounded-2xl shadow-xl flex flex-col h-[680px] overflow-hidden">
-
-                <!-- Empty state -->
-                <div id="panel-empty" class="flex-1 flex flex-col items-center justify-center text-slate-400">
-                    <div class="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center mb-3 text-blue-700">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
-                    </div>
-                    <span class="text-sm font-semibold text-slate-800">Select a conversation</span>
-                    <span class="text-xs text-slate-500 mt-1">or start a new one with the + button</span>
-                </div>
-
-                <!-- Thread view -->
-                <div id="panel-thread" class="flex-1 flex-col overflow-hidden hidden">
-                    <div class="border-b border-slate-200/60 p-4 flex items-center justify-between">
-                        <div class="flex items-center gap-3 min-w-0">
-                            <div class="w-9 h-9 rounded-full bg-slate-100 border border-slate-200 text-blue-700 flex items-center justify-center shrink-0">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                            </div>
-                            <div class="min-w-0">
-                                <div id="thread-contact-number" class="text-sm font-extrabold text-slate-800 code-font truncate">—</div>
-                                <div class="text-[11px] text-slate-500 font-medium">SMS conversation</div>
-                            </div>
-                        </div>
-                        <button id="btn-show-history-map" class="hidden bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200/60 text-xs font-bold px-3 py-1.5 rounded-lg transition active:scale-95 flex items-center gap-1.5 shadow-sm whitespace-nowrap shrink-0">
-                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                            Location History (0)
-                        </button>
-                    </div>
-                    <div id="thread-messages" class="flex-1 overflow-y-auto p-5 space-y-3.5 flex flex-col">
-                        <!-- Dynamic bubbles -->
-                    </div>
-                    <form id="form-send-thread" class="p-3.5 bg-white/95 border-t border-slate-200/60 flex gap-2 items-center">
-                        <select id="thread-sim-operator" class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 text-slate-800 text-sm focus:outline-none focus:border-blue-700 transition" title="Select Sender Operator">
-                            <!-- Populated dynamically -->
-                        </select>
-                        <textarea id="thread-text" rows="1" required class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 text-sm focus:outline-none focus:border-blue-700 transition resize-none placeholder:text-slate-400" placeholder="Type a message..."></textarea>
-                        <button type="submit" class="h-[46px] w-[46px] flex items-center justify-center bg-gradient-to-tr from-blue-700 to-indigo-600 hover:from-blue-600 hover:to-indigo-500 text-white rounded-xl shadow-lg shadow-blue-700/10 active:scale-95 transition shrink-0">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
-                        </button>
-                    </form>
-                </div>
-
-                <!-- New conversation form -->
-                <div id="panel-new-conversation" class="flex-1 flex-col overflow-hidden hidden">
-                    <div class="border-b border-slate-200/60 p-4 flex items-center gap-3">
-                        <button id="btn-new-conversation-back" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-600 transition shrink-0">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
-                        </button>
-                        <div class="text-sm font-bold text-slate-800">New Conversation</div>
-                    </div>
-                    <form id="form-new-conversation" class="p-6 space-y-4 max-w-md overflow-y-auto">
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Recipient Telecom Company</label>
-                            <select id="new-conv-to" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 text-sm focus:outline-none focus:border-blue-700 transition">
-                                <option value="" disabled selected>Select Telecom Company...</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Message</label>
-                            <textarea id="new-conv-text" rows="4" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 text-sm focus:outline-none focus:border-blue-700 transition resize-none placeholder:text-slate-400" placeholder="Type your message..."></textarea>
-                        </div>
-
-                        <!-- Search mode: one-time vs recurring over a date range -->
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Search Mode</label>
-                            <div class="grid grid-cols-2 gap-2">
-                                <button type="button" id="mode-btn-onetime" class="search-mode-btn px-3 py-2.5 rounded-xl text-xs font-bold border transition bg-blue-700 text-white border-blue-700">
-                                    One Time Search
-                                </button>
-                                <button type="button" id="mode-btn-scheduled" class="search-mode-btn px-3 py-2.5 rounded-xl text-xs font-bold border transition bg-slate-50 text-slate-600 border-slate-200">
-                                    Date Range / Periodic
-                                </button>
-                            </div>
-                        </div>
-
-                        <div id="schedule-options" class="hidden space-y-3 bg-slate-50 border border-slate-200 rounded-xl p-4">
-                            <div class="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label class="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">From (Start)</label>
-                                    <input type="datetime-local" id="schedule-start" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-slate-900 text-xs focus:outline-none focus:border-blue-700 transition">
-                                </div>
-                                <div>
-                                    <label class="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">To (End)</label>
-                                    <input type="datetime-local" id="schedule-end" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-slate-900 text-xs focus:outline-none focus:border-blue-700 transition">
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Repeat Every</label>
-                                <select id="schedule-frequency" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-slate-900 text-xs focus:outline-none focus:border-blue-700 transition">
-                                    <option value="5">5 minutes</option>
-                                    <option value="15">15 minutes</option>
-                                    <option value="45">45 minutes</option>
-                                    <option value="60" selected>60 minutes</option>
-                                    <option value="120">2 hours</option>
-                                    <option value="240">4 hours</option>
-                                    <option value="480">8 hours</option>
-                                    <option value="720">12 hours</option>
-                                    <option value="1440">Daily (once a day)</option>
-                                </select>
-                            </div>
-                            <p class="text-[11px] text-slate-500 leading-snug">The same message above will be re-sent automatically to this number on this schedule until the end date/time.</p>
-                        </div>
-
-                        <button type="submit" id="btn-new-conv-submit" class="w-full bg-gradient-to-r from-blue-700 to-indigo-600 hover:from-blue-600 hover:to-indigo-500 text-white font-bold py-3.5 rounded-xl text-sm transition shadow-lg shadow-blue-700/10 active:scale-[0.98]">
-                            Send Message
-                        </button>
-                    </form>
-                </div>
-
-            </section>
-
-        </main>
-
-        <!-- My Schedules panel -->
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 mb-8">
-            <section class="glass-card rounded-2xl shadow-xl p-5">
-                <div class="flex items-center justify-between mb-3">
-                    <h2 class="text-xs font-extrabold text-blue-700 uppercase tracking-widest">My Scheduled Searches</h2>
-                    <button id="btn-refresh-schedules" class="text-[11px] font-bold text-blue-700 hover:underline">Refresh</button>
-                </div>
-                <div id="schedules-list" class="space-y-2 text-sm text-slate-600">
-                    <span class="text-xs text-slate-400">No scheduled searches yet.</span>
-                </div>
-            </section>
-        </div>
-        </div>
-
-        <!-- Message Logs Tab Panel -->
-        <div id="view-logs" class="hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
-            <div class="glass-card rounded-2xl shadow-xl p-6 flex flex-col min-h-[580px] mb-8">
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-5 border-b border-slate-200/60 gap-4 mb-6">
-                    <div>
-                        <h2 class="text-sm font-extrabold text-slate-900">Your Message Logs</h2>
-                        <p class="text-xs text-slate-500 mt-0.5">Real-time incoming and outgoing messages with operators, status, and replies.</p>
+                        <h2 class="text-sm font-bold text-slate-900">Message Logs</h2>
+                        <p class="text-xs text-slate-400 mt-0.5">Real-time incoming and outgoing messages with operators, status, and replies.</p>
                     </div>
                     <div class="flex flex-wrap items-center gap-2">
                         <!-- Search Bar -->
@@ -315,14 +303,14 @@
                 <div class="flex-1 overflow-x-auto overflow-y-auto max-h-[500px] pr-1">
                     <table class="w-full text-left border-collapse text-xs">
                         <thead>
-                            <tr class="border-b border-slate-200 text-slate-500 font-extrabold uppercase tracking-wider text-left">
-                                <th class="pb-3.5 font-bold">Direction</th>
-                                <th class="pb-3.5 font-bold">Sender</th>
-                                <th class="pb-3.5 font-bold">Recipient</th>
-                                <th class="pb-3.5 font-bold">Message Text</th>
-                                <th class="pb-3.5 font-bold">Time</th>
-                                <th class="pb-3.5 font-bold">Telecom / SIM Operator</th>
-                                <th class="pb-3.5 font-bold">Status</th>
+                            <tr class="border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-left">
+                                <th class="pb-3.5 text-[10px]">Direction</th>
+                                <th class="pb-3.5 text-[10px]">Sender</th>
+                                <th class="pb-3.5 text-[10px]">Recipient</th>
+                                <th class="pb-3.5 text-[10px]">Message Text</th>
+                                <th class="pb-3.5 text-[10px]">Time</th>
+                                <th class="pb-3.5 text-[10px]">Telecom / SIM Operator</th>
+                                <th class="pb-3.5 text-[10px]">Status</th>
                             </tr>
                         </thead>
                         <tbody id="user-logs-tbody" class="divide-y divide-slate-100 font-medium text-slate-700">
@@ -333,13 +321,13 @@
             </div>
         </div>
 
-        <!-- Extracted Links Tab Panel -->
-        <div id="view-links" class="hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
-            <div class="glass-card rounded-2xl shadow-xl p-6 flex flex-col min-h-[580px] mb-8">
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-5 border-b border-slate-200/60 gap-4 mb-6">
+        <!-- ============ EXTRACTED LINKS PANEL ============ -->
+        <div id="view-links" data-view-panel="links" class="hidden">
+            <div class="bg-white border border-slate-200/80 rounded-xl shadow-sm p-6 flex flex-col min-h-[580px]">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-5 border-b border-slate-100 gap-4 mb-6">
                     <div>
-                        <h2 class="text-sm font-extrabold text-slate-900">Extracted Links</h2>
-                        <p class="text-xs text-slate-500 mt-0.5">List of all links extracted from message logs.</p>
+                        <h2 class="text-sm font-bold text-slate-900">Extracted Links</h2>
+                        <p class="text-xs text-slate-400 mt-0.5">List of all links extracted from message logs.</p>
                     </div>
                     <div class="flex flex-wrap items-center gap-2">
                         <!-- Search Bar -->
@@ -364,14 +352,14 @@
                 <div class="flex-1 overflow-x-auto overflow-y-auto max-h-[500px] pr-1">
                     <table class="w-full text-left border-collapse text-xs">
                         <thead>
-                            <tr class="border-b border-slate-200 text-slate-500 font-extrabold uppercase tracking-wider text-left">
-                                <th class="pb-3.5 font-bold">Direction</th>
-                                <th class="pb-3.5 font-bold">Sender</th>
-                                <th class="pb-3.5 font-bold">Recipient</th>
-                                <th class="pb-3.5 font-bold">Extracted Link</th>
-                                <th class="pb-3.5 font-bold">Original Message Text</th>
-                                <th class="pb-3.5 font-bold">Time</th>
-                                <th class="pb-3.5 font-bold">Telecom / SIM Operator</th>
+                            <tr class="border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-left">
+                                <th class="pb-3.5 text-[10px]">Direction</th>
+                                <th class="pb-3.5 text-[10px]">Sender</th>
+                                <th class="pb-3.5 text-[10px]">Recipient</th>
+                                <th class="pb-3.5 text-[10px]">Extracted Link</th>
+                                <th class="pb-3.5 text-[10px]">Original Message Text</th>
+                                <th class="pb-3.5 text-[10px]">Time</th>
+                                <th class="pb-3.5 text-[10px]">Telecom / SIM Operator</th>
                             </tr>
                         </thead>
                         <tbody id="links-tbody" class="divide-y divide-slate-100 font-medium text-slate-700">
@@ -382,37 +370,97 @@
             </div>
          </div>
 
-        <!-- Location History Modal -->
-        <div id="modal-location-history" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden" style="background-color: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);">
-            <div class="w-full max-w-5xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col h-[640px] max-h-[90vh] animate-in fade-in zoom-in duration-200">
-                <!-- Header -->
-                <div class="p-5 border-b border-slate-200/60 flex items-center justify-between bg-slate-50/50">
+        <!-- ============ SCHEDULED SEARCHES PANEL ============ -->
+        <div id="view-schedules" data-view-panel="schedules" class="hidden">
+            <div class="bg-white border border-slate-200/80 rounded-xl shadow-sm p-6 flex flex-col min-h-[580px]">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-5 border-b border-slate-100 gap-4 mb-6">
                     <div>
-                        <h3 class="text-sm font-extrabold text-slate-900 flex items-center gap-2">
-                            <svg class="w-4 h-4 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                            Location History Map (<span id="history-modal-phone" class="code-font text-blue-700">—</span>)
-                        </h3>
-                        <p class="text-[11px] text-slate-500 mt-1">Viewing all extracted locations plotted in chronological sequence of movement</p>
+                        <h2 class="text-sm font-bold text-slate-900">Scheduled Searches</h2>
+                        <p class="text-xs text-slate-400 mt-0.5">Recurring or date-range message searches you've set up.</p>
                     </div>
-                    <button id="btn-close-location-modal" class="text-slate-400 hover:text-slate-600 transition p-1.5 rounded-lg hover:bg-slate-100/80">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    <button id="btn-refresh-schedules" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/60 text-xs font-bold px-3.5 py-2 rounded-lg transition shrink-0 active:scale-95 flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 4.79M9 9h9l-4-4"></path></svg>
+                        Refresh
                     </button>
                 </div>
-                <!-- Body -->
-                <div class="flex-1 flex flex-col md:flex-row min-h-0">
-                    <!-- Map Left Pane -->
-                    <div class="w-full md:flex-1 h-[350px] md:h-full relative bg-slate-100 border-r border-slate-100">
-                        <div id="history-map" class="absolute inset-0 z-10"></div>
+                <div id="schedules-list" class="space-y-2 text-sm text-slate-600">
+                    <span class="text-xs text-slate-400">No scheduled searches yet.</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ ALL LOCATIONS PANEL ============ -->
+        <div id="view-locations" data-view-panel="locations" class="hidden">
+            <div class="bg-white border border-slate-200/80 rounded-xl shadow-sm p-6 flex flex-col min-h-[580px]">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-5 border-b border-slate-100 gap-4 mb-6">
+                    <div>
+                        <h2 class="text-sm font-bold text-slate-900">All Locations</h2>
+                        <p class="text-xs text-slate-400 mt-0.5">Every location extracted from your messages, plotted on one map.</p>
                     </div>
-                    <!-- Location List Right Pane -->
-                    <div class="w-full md:w-80 flex flex-col min-h-0 bg-white">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <select id="locations-filter" class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 font-semibold focus:outline-none focus:border-blue-700 transition min-w-[180px]">
+                            <option value="">All Numbers</option>
+                        </select>
+                        <button id="btn-refresh-locations" class="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/60 text-xs font-bold px-3.5 py-2 rounded-lg transition shrink-0 active:scale-95 flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 4.79M9 9h9l-4-4"></path></svg>
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex-1 flex flex-col md:flex-row gap-4 min-h-[520px]">
+                    <!-- Map -->
+                    <div class="w-full md:flex-1 h-[350px] md:h-auto relative bg-slate-100 border border-slate-200 rounded-xl overflow-hidden">
+                        <div id="locations-map" class="absolute inset-0 z-10"></div>
+                    </div>
+                    <!-- List -->
+                    <div class="w-full md:w-80 flex flex-col min-h-0 bg-white border border-slate-200 rounded-xl overflow-hidden shrink-0">
                         <div class="p-4 border-b border-slate-100 bg-slate-50/30 flex items-center justify-between">
-                            <h4 class="text-xs font-extrabold text-slate-700 uppercase tracking-wider">Historical Points</h4>
-                            <span id="history-modal-count" class="bg-blue-100 text-blue-800 font-extrabold text-[10px] px-2 py-0.5 rounded-full">0</span>
+                            <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Points</h4>
+                            <span id="locations-count" class="bg-blue-100 text-blue-800 font-extrabold text-[10px] px-2 py-0.5 rounded-full">0</span>
                         </div>
-                        <div id="history-locations-list" class="flex-1 overflow-y-auto divide-y divide-slate-100 p-2 space-y-1">
-                            <!-- Location elements will be populated here -->
+                        <div id="locations-list" class="flex-1 overflow-y-auto divide-y divide-slate-100 p-2 space-y-1 max-h-[520px]">
+                            <span class="text-xs text-slate-400 px-2">No locations found yet.</span>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+</div>
+</div>
+
+    <!-- Location History Modal -->
+    <div id="modal-location-history" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden" style="background-color: rgba(15, 23, 42, 0.7);">
+        <div class="w-full max-w-5xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col h-[640px] max-h-[90vh]">
+            <!-- Header -->
+            <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        Location History Map (<span id="history-modal-phone" class="code-font text-blue-700">—</span>)
+                    </h3>
+                    <p class="text-[11px] text-slate-400 mt-1">Viewing all extracted locations plotted in chronological sequence of movement</p>
+                </div>
+                <button id="btn-close-location-modal" class="text-slate-400 hover:text-slate-600 transition p-1.5 rounded-lg hover:bg-slate-100">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <!-- Body -->
+            <div class="flex-1 flex flex-col md:flex-row min-h-0">
+                <!-- Map Left Pane -->
+                <div class="w-full md:flex-1 h-[350px] md:h-full relative bg-slate-100 border-r border-slate-100">
+                    <div id="history-map" class="absolute inset-0 z-10"></div>
+                </div>
+                <!-- Location List Right Pane -->
+                <div class="w-full md:w-80 flex flex-col min-h-0 bg-white">
+                    <div class="p-4 border-b border-slate-100 bg-slate-50/30 flex items-center justify-between">
+                        <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Historical Points</h4>
+                        <span id="history-modal-count" class="bg-blue-100 text-blue-800 font-extrabold text-[10px] px-2 py-0.5 rounded-full">0</span>
+                    </div>
+                    <div id="history-locations-list" class="flex-1 overflow-y-auto divide-y divide-slate-100 p-2 space-y-1">
+                        <!-- Location elements will be populated here -->
                     </div>
                 </div>
             </div>
@@ -432,9 +480,13 @@
         const tabBtnChat = document.getElementById("tab-btn-chat");
         const tabBtnLogs = document.getElementById("tab-btn-logs");
         const tabBtnLinks = document.getElementById("tab-btn-links");
+        const tabBtnSchedules = document.getElementById("tab-btn-schedules");
+        const tabBtnLocations = document.getElementById("tab-btn-locations");
         const viewChat = document.getElementById("view-chat");
         const viewLogs = document.getElementById("view-logs");
         const viewLinks = document.getElementById("view-links");
+        const viewSchedules = document.getElementById("view-schedules");
+        const viewLocations = document.getElementById("view-locations");
 
         const formLogin = document.getElementById("form-login");
         const formSendThread = document.getElementById("form-send-thread");
@@ -725,6 +777,19 @@
             return digits.length >= 10 ? digits.slice(-10) : digits;
         }
 
+        // A conversation/location-history "identity" for a message. Prefers
+        // target_number (the customer/account number embedded in the message
+        // text itself, e.g. "BAL 9876543210") over the raw recipient/sender.
+        // This matters because a telecom operator can legitimately reply from
+        // a different one of their own gateway numbers every time - but they
+        // always echo back the same target_number, so grouping on it keeps
+        // every reply about the same tracked number in one place instead of
+        // splitting into a separate conversation per reply.
+        function contactIdentityFor(m) {
+            if (m.target_number) return m.target_number;
+            return m.direction === "out" ? m.recipient : m.sender;
+        }
+
         function isPhoneMatch(p1, p2) {
             if (!p1 || !p2) return false;
             const n1 = p1.replace(/[^0-9]/g, "");
@@ -845,14 +910,14 @@
         function groupByContact(messages) {
             const groups = {};
             messages.forEach(m => {
-                const rawContact = m.direction === "out" ? m.recipient : m.sender;
+                const rawContact = contactIdentityFor(m);
                 const contactKey = normalizePhone(rawContact);
                 if (!groups[contactKey]) groups[contactKey] = [];
                 groups[contactKey].push(m);
             });
             return Object.entries(groups).map(([contactKey, msgs]) => {
                 const lastMessage = msgs[0];
-                const displayName = lastMessage.direction === "out" ? lastMessage.recipient : lastMessage.sender;
+                const displayName = contactIdentityFor(lastMessage);
                 return {
                     contact: displayName,
                     contactKey: contactKey,
@@ -979,7 +1044,7 @@
             const targetKey = normalizePhone(contact);
             const msgs = allMessages
                 .filter(m => {
-                    const msgContact = m.direction === "out" ? m.recipient : m.sender;
+                    const msgContact = contactIdentityFor(m);
                     return normalizePhone(msgContact) === targetKey;
                 })
                 .slice()
@@ -1564,40 +1629,60 @@
             }
         }
 
+        const tabMeta = {
+            chat: { crumb: "Conversations", title: "Conversations" },
+            logs: { crumb: "Message Logs", title: "Message Logs" },
+            links: { crumb: "Extracted Links", title: "Extracted Links" },
+            schedules: { crumb: "Scheduled Searches", title: "Scheduled Searches" },
+            locations: { crumb: "Locations", title: "All Locations" },
+        };
+
         function switchTab(tab) {
-            tabBtnChat.classList.remove("border-blue-700", "text-blue-700", "font-extrabold");
-            tabBtnChat.classList.add("border-transparent", "text-slate-500");
-            
-            tabBtnLogs.classList.remove("border-blue-700", "text-blue-700", "font-extrabold");
-            tabBtnLogs.classList.add("border-transparent", "text-slate-500");
-            
-            tabBtnLinks.classList.remove("border-blue-700", "text-blue-700", "font-extrabold");
-            tabBtnLinks.classList.add("border-transparent", "text-slate-500");
+            [tabBtnChat, tabBtnLogs, tabBtnLinks, tabBtnSchedules, tabBtnLocations].forEach(btn => {
+                const active = btn.dataset.tabBtn === tab;
+                btn.classList.toggle("bg-blue-50", active);
+                btn.classList.toggle("text-blue-700", active);
+                btn.classList.toggle("border", active);
+                btn.classList.toggle("border-blue-100", active);
+                btn.classList.toggle("shadow-sm", active);
+                btn.classList.toggle("text-slate-500", !active);
+            });
 
             viewChat.classList.add("hidden");
             viewLogs.classList.add("hidden");
             viewLinks.classList.add("hidden");
+            viewSchedules.classList.add("hidden");
+            viewLocations.classList.add("hidden");
+
+            const meta = tabMeta[tab];
+            if (meta) {
+                document.getElementById("header-crumb").textContent = meta.crumb;
+                document.getElementById("header-title").textContent = meta.title;
+            }
 
             if (tab === "chat") {
-                tabBtnChat.classList.add("border-blue-700", "text-blue-700", "font-extrabold");
-                tabBtnChat.classList.remove("border-transparent", "text-slate-500");
                 viewChat.classList.remove("hidden");
             } else if (tab === "logs") {
-                tabBtnLogs.classList.add("border-blue-700", "text-blue-700", "font-extrabold");
-                tabBtnLogs.classList.remove("border-transparent", "text-slate-500");
                 viewLogs.classList.remove("hidden");
                 renderUserLogsTable(document.getElementById("logs-search").value.trim());
             } else if (tab === "links") {
-                tabBtnLinks.classList.add("border-blue-700", "text-blue-700", "font-extrabold");
-                tabBtnLinks.classList.remove("border-transparent", "text-slate-500");
                 viewLinks.classList.remove("hidden");
                 renderLinksTable(document.getElementById("links-search").value.trim());
+            } else if (tab === "schedules") {
+                viewSchedules.classList.remove("hidden");
+                loadSchedules();
+            } else if (tab === "locations") {
+                viewLocations.classList.remove("hidden");
+                populateLocationsFilter();
+                renderLocationsTab();
             }
         }
 
         tabBtnChat.addEventListener("click", () => switchTab("chat"));
         tabBtnLogs.addEventListener("click", () => switchTab("logs"));
         tabBtnLinks.addEventListener("click", () => switchTab("links"));
+        tabBtnSchedules.addEventListener("click", () => switchTab("schedules"));
+        tabBtnLocations.addEventListener("click", () => switchTab("locations"));
 
         document.getElementById("logs-search").addEventListener("input", (e) => {
             renderUserLogsTable(e.target.value.trim());
@@ -1675,7 +1760,7 @@
             const targetKey = normalizePhone(activeContact);
             const threadMsgs = allMessages
                 .filter(m => {
-                    const msgContact = m.direction === "out" ? m.recipient : m.sender;
+                    const msgContact = contactIdentityFor(m);
                     return normalizePhone(msgContact) === targetKey;
                 });
                 
@@ -1899,6 +1984,165 @@
             if (e.target === document.getElementById("modal-location-history")) {
                 closeHistoryModal();
             }
+        });
+
+        // --- All Locations tab (combined map across every tracked number) -----
+        let locationsMap = null;
+        const LOCATION_COLORS = ["#1d4ed8", "#059669", "#d97706", "#dc2626", "#7c3aed", "#0891b2", "#db2777", "#65a30d"];
+
+        function colorForIdentity(identity, paletteMap) {
+            if (!paletteMap.has(identity)) {
+                paletteMap.set(identity, LOCATION_COLORS[paletteMap.size % LOCATION_COLORS.length]);
+            }
+            return paletteMap.get(identity);
+        }
+
+        // Every message across every conversation that has an extractable
+        // location, tagged with which tracked number (identity) it belongs to.
+        function collectAllLocations() {
+            const points = [];
+            allMessages.forEach(m => {
+                const coords = extractCoordinates(m.text);
+                if (!coords) return;
+                points.push({
+                    identity: contactIdentityFor(m) || "Unknown",
+                    coords,
+                    time: m.time,
+                    id: m.id,
+                    operator: m.sim_operator || "Unknown",
+                });
+            });
+            return points;
+        }
+
+        function populateLocationsFilter() {
+            const select = document.getElementById("locations-filter");
+            const previousValue = select.value;
+            const identities = Array.from(new Set(collectAllLocations().map(p => p.identity))).sort();
+
+            select.innerHTML = `<option value="">All Numbers</option>`;
+            identities.forEach(identity => {
+                const opt = document.createElement("option");
+                opt.value = identity;
+                opt.textContent = identity;
+                select.appendChild(opt);
+            });
+
+            if (identities.includes(previousValue)) select.value = previousValue;
+        }
+
+        function renderLocationsTab() {
+            const filterValue = document.getElementById("locations-filter").value;
+            let points = collectAllLocations();
+            if (filterValue) {
+                points = points.filter(p => normalizePhone(p.identity) === normalizePhone(filterValue));
+            }
+
+            // Chronological order within each identity's own track
+            points.sort((a, b) => {
+                const timeA = new Date(a.time).getTime() || a.id;
+                const timeB = new Date(b.time).getTime() || b.id;
+                return timeA - timeB;
+            });
+
+            document.getElementById("locations-count").textContent = points.length;
+
+            const listContainer = document.getElementById("locations-list");
+            listContainer.innerHTML = "";
+
+            if (locationsMap) {
+                try { locationsMap.remove(); } catch (e) { console.error("Error removing locations map:", e); }
+                locationsMap = null;
+            }
+
+            if (points.length === 0) {
+                listContainer.innerHTML = `<span class="text-xs text-slate-400 px-2">No locations found yet.</span>`;
+                return;
+            }
+
+            if (typeof L !== "undefined") {
+                try {
+                    locationsMap = L.map("locations-map", { zoomControl: true, attributionControl: false });
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(locationsMap);
+                } catch (e) {
+                    console.error("Leaflet initialization failed for locations tab:", e);
+                }
+            }
+
+            // Group points by identity so each tracked number gets its own
+            // color and its own connecting line, even though they all share
+            // one map.
+            const byIdentity = new Map();
+            points.forEach(p => {
+                if (!byIdentity.has(p.identity)) byIdentity.set(p.identity, []);
+                byIdentity.get(p.identity).push(p);
+            });
+
+            const paletteMap = new Map();
+            const allLatlngs = [];
+
+            byIdentity.forEach((groupPoints, identity) => {
+                const color = colorForIdentity(identity, paletteMap);
+                const latlngs = groupPoints.map(p => [p.coords.lat, p.coords.lng]);
+                allLatlngs.push(...latlngs);
+
+                if (locationsMap && latlngs.length > 1) {
+                    L.polyline(latlngs, { color, weight: 3, opacity: 0.75, dashArray: '5, 8', lineJoin: 'round' }).addTo(locationsMap);
+                }
+
+                groupPoints.forEach((p, idx) => {
+                    const latlng = [p.coords.lat, p.coords.lng];
+                    const timeStr = formatBubbleTimestamp(p.time);
+
+                    if (locationsMap) {
+                        const dotIcon = L.divIcon({
+                            className: 'custom-div-icon',
+                            html: `<div class="w-4 h-4 rounded-full border-2 border-white shadow-md" style="background-color:${color}"></div>`,
+                            iconSize: [16, 16],
+                            iconAnchor: [8, 8],
+                            popupAnchor: [0, -8]
+                        });
+                        const marker = L.marker(latlng, { icon: dotIcon }).addTo(locationsMap);
+                        marker.bindPopup(`
+                            <div class="p-1 text-slate-800 leading-relaxed font-medium text-[11px] space-y-1">
+                                <div class="font-bold text-slate-900 code-font">${escapeHtml(identity)}</div>
+                                <div>Time: <span class="font-bold">${timeStr}</span></div>
+                                <div class="font-mono">Lat: ${p.coords.lat.toFixed(5)}, Lng: ${p.coords.lng.toFixed(5)}</div>
+                                <div>Operator: <span class="font-bold">${escapeHtml(p.operator)}</span></div>
+                            </div>
+                        `);
+                    }
+
+                    const item = document.createElement("div");
+                    item.className = "p-3 hover:bg-slate-50 border-b border-slate-100 transition cursor-pointer flex flex-col gap-1 text-xs";
+                    item.innerHTML = `
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="font-bold code-font truncate" style="color:${color}">${escapeHtml(identity)}</span>
+                            <span class="text-[10px] text-slate-500 font-bold shrink-0">${timeStr}</span>
+                        </div>
+                        <div class="text-slate-500 font-medium code-font text-[10px]">Lat: ${p.coords.lat.toFixed(5)}, Lng: ${p.coords.lng.toFixed(5)}</div>
+                    `;
+                    item.addEventListener("click", () => {
+                        if (locationsMap) locationsMap.setView(latlng, 16);
+                    });
+                    listContainer.appendChild(item);
+                });
+            });
+
+            if (locationsMap && allLatlngs.length > 1) {
+                setTimeout(() => {
+                    locationsMap.fitBounds(L.latLngBounds(allLatlngs), { padding: [40, 40] });
+                }, 150);
+            } else if (locationsMap && allLatlngs.length === 1) {
+                setTimeout(() => locationsMap.setView(allLatlngs[0], 14), 150);
+            }
+            setTimeout(() => { if (locationsMap) locationsMap.invalidateSize(); }, 300);
+        }
+
+        document.getElementById("locations-filter").addEventListener("change", renderLocationsTab);
+        document.getElementById("btn-refresh-locations").addEventListener("click", () => {
+            populateLocationsFilter();
+            renderLocationsTab();
         });
 
         // Check login on startup

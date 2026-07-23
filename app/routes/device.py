@@ -8,6 +8,7 @@ from ..security import check_device_auth
 from ..config import Config
 from ..extensions import limiter
 from .location_resolver import trigger_enrichment
+from .phone_extractor import extract_first
 
 device_bp = Blueprint("device", __name__, url_prefix="/api")
 
@@ -146,6 +147,14 @@ def device_incoming_message():
     conn = get_db()
     time_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
 
+    # The number being tracked/queried, echoed back inside the operator's reply
+    # text. Storing this (instead of relying on `sender`, which can be a
+    # different gateway number on every reply) is what lets the dashboard show
+    # every reply about the same customer number in one conversation/location
+    # history, even when a telecom operator replies from several different
+    # numbers of their own.
+    target_number = extract_first(message)
+
     # Insert one row per matched owner so each coworker's filtered inbox
     # (WHERE owner = ?) shows the reply. A shared `id` prefix keeps the
     # duplicates traceable back to the same physical SMS in the admin view.
@@ -154,10 +163,10 @@ def device_incoming_message():
         msg_id = base_id if idx == 0 else f"{base_id}-{idx}"
         conn.execute(
             """
-            INSERT INTO messages (id, direction, sender, recipient, text, time, status, owner)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO messages (id, direction, sender, recipient, text, time, status, owner, target_number)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (msg_id, "in", sender, Config.MY_NUMBER, message, time_str, "delivered", owner),
+            (msg_id, "in", sender, Config.MY_NUMBER, message, time_str, "delivered", owner, target_number),
         )
         trigger_enrichment(msg_id, message)
 

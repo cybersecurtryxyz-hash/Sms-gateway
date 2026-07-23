@@ -81,7 +81,8 @@ def init_db():
                 time TEXT NOT NULL,
                 status TEXT NOT NULL,
                 owner TEXT,
-                sim_operator TEXT
+                sim_operator TEXT,
+                target_number TEXT
             )
             """
         )
@@ -94,6 +95,18 @@ def init_db():
         # Safe migration for DBs created before the `sim_operator` column existed
         try:
             cursor.execute("ALTER TABLE messages ADD COLUMN sim_operator TEXT")
+        except sqlite3.OperationalError:
+            pass  # column already exists
+
+        # Safe migration for DBs created before the `target_number` column existed.
+        # This holds the customer/account number embedded inside the message text
+        # itself (e.g. "BAL 9876543210" -> "9876543210"), which is what a telecom
+        # operator's reply will echo back - regardless of which of their own
+        # gateway numbers they physically reply from. Grouping conversations and
+        # location history by this column (instead of raw sender/recipient) keeps
+        # every reply about the same tracked number together in one thread.
+        try:
+            cursor.execute("ALTER TABLE messages ADD COLUMN target_number TEXT")
         except sqlite3.OperationalError:
             pass  # column already exists
 

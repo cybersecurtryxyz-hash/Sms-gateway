@@ -15,6 +15,7 @@ import time
 from datetime import datetime, timedelta, timezone
 
 from .db import get_db
+from .routes.phone_extractor import extract_first
 
 logger = logging.getLogger(__name__)
 
@@ -64,14 +65,15 @@ def _fire_schedule(conn, sched, now_str):
         operators = [sched["sim_operator"] or ""]
 
     base_id = f"SCH-{sched['id']}-{int(time.time() * 1000)}"
+    target_number = extract_first(sched["text"])
     for idx, op in enumerate(operators):
         msg_id = base_id if idx == 0 else f"{base_id}-{idx}"
         conn.execute(
             """
-            INSERT INTO messages (id, direction, sender, recipient, text, time, status, owner, sim_operator)
-            VALUES (?, 'out', ?, ?, ?, ?, 'queued', ?, ?)
+            INSERT INTO messages (id, direction, sender, recipient, text, time, status, owner, sim_operator, target_number)
+            VALUES (?, 'out', ?, ?, ?, ?, 'queued', ?, ?, ?)
             """,
-            (msg_id, sched["owner"], sched["recipient"], sched["text"], now_str, sched["owner"], op),
+            (msg_id, sched["owner"], sched["recipient"], sched["text"], now_str, sched["owner"], op, target_number),
         )
 
     next_run = _parse(sched["next_run_at"]) + timedelta(minutes=sched["frequency_minutes"])

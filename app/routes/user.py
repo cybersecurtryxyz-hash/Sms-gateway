@@ -8,6 +8,7 @@ from ..security import verify_user_password, generate_token, verify_token, get_b
 from ..config import Config
 from ..extensions import limiter
 from .location_resolver import trigger_enrichment
+from .phone_extractor import extract_first
 
 user_bp = Blueprint("user", __name__, url_prefix="/api")
 
@@ -82,13 +83,14 @@ def user_send_sms():
     conn = get_db()
     msg_id = f"MSG-{int(time.time() * 1000)}"
     time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    target_number = extract_first(text)
 
     conn.execute(
         """
-        INSERT INTO messages (id, direction, sender, recipient, text, time, status, owner)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO messages (id, direction, sender, recipient, text, time, status, owner, target_number)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (msg_id, "out", username, to, text, time_str, "queued", username),
+        (msg_id, "out", username, to, text, time_str, "queued", username, target_number),
     )
     conn.commit()
     conn.close()
