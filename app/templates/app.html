@@ -1482,6 +1482,18 @@
         }
 
         // --- Detailed Message Logs + Tab Switcher -------------------------
+        // For outgoing messages, show the telecom company name instead of the raw
+        // recipient number - prefer sim_operator (the operator actually used to
+        // send), falling back to matching the recipient against allowedNumbers.
+        function recipientLabel(m) {
+            if (m.direction === "out") {
+                if (m.sim_operator && m.sim_operator !== "ALL_OPERATORS") return m.sim_operator;
+                const matched = allowedNumbers.find(n => n.phone_number === m.recipient);
+                if (matched) return matched.operator_name;
+            }
+            return m.recipient;
+        }
+
         function renderUserLogsTable(filterText = "") {
             const tbody = document.getElementById("user-logs-tbody");
             if (!tbody) return;
@@ -1527,7 +1539,7 @@
                     <tr class="hover:bg-slate-50 transition border-b border-slate-100">
                         <td class="py-3.5 pr-2">${dirBadge}</td>
                         <td class="py-3.5 font-bold text-slate-600">${escapeHtml(m.sender)}</td>
-                        <td class="py-3.5 text-slate-800 font-semibold code-font">${escapeHtml(m.recipient)}</td>
+                        <td class="py-3.5 text-slate-800 font-semibold code-font">${escapeHtml(recipientLabel(m))}</td>
                         <td class="py-3.5 pr-4 text-slate-700 font-medium break-all whitespace-pre-wrap max-w-xs">${makeLinksClickable(escapeHtml(formatOperatorReply(m.text)))}</td>
                         <td class="py-3.5 text-slate-500 font-medium whitespace-nowrap">${escapeHtml(formatBubbleTimestamp(m.time))}</td>
                         <td class="py-3.5 text-slate-600 font-bold uppercase tracking-wider">${escapeHtml(m.sim_operator || "Unknown")}</td>
@@ -1592,7 +1604,7 @@
                     <tr class="hover:bg-slate-50 transition border-b border-slate-100">
                         <td class="py-3.5 pr-2">${dirBadge}</td>
                         <td class="py-3.5 font-bold text-slate-600">${escapeHtml(m.sender)}</td>
-                        <td class="py-3.5 text-slate-800 font-semibold code-font">${escapeHtml(m.recipient)}</td>
+                        <td class="py-3.5 text-slate-800 font-semibold code-font">${escapeHtml(recipientLabel(m))}</td>
                         <td class="py-3.5 text-blue-600 font-bold underline code-font max-w-xs break-all">
                             <a href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer" class="hover:text-blue-800">${escapeHtml(link)}</a>
                         </td>
