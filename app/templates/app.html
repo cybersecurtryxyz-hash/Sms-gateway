@@ -2150,7 +2150,10 @@
                 groupPoints.forEach((p, idx) => {
                     const latlng = [p.coords.lat, p.coords.lng];
                     const timeStr = formatBubbleTimestamp(p.time);
+                    const addressElId = `allloc-address-${paletteMap.size}-${idx}-${p.id || Math.random().toString(36).slice(2)}`;
 
+                    let marker = null;
+                    let buildPopupContent = null;
                     if (locationsMap) {
                         const dotIcon = L.divIcon({
                             className: 'custom-div-icon',
@@ -2159,15 +2162,17 @@
                             iconAnchor: [8, 8],
                             popupAnchor: [0, -8]
                         });
-                        const marker = L.marker(latlng, { icon: dotIcon }).addTo(locationsMap);
-                        marker.bindPopup(`
+                        marker = L.marker(latlng, { icon: dotIcon }).addTo(locationsMap);
+                        buildPopupContent = (addressLine) => `
                             <div class="p-1 text-slate-800 leading-relaxed font-medium text-[11px] space-y-1">
                                 <div class="font-bold text-slate-900 code-font">${escapeHtml(identity)}</div>
+                                <div class="font-bold text-slate-700 pb-1 border-b border-slate-50">${addressLine}</div>
                                 <div>Time: <span class="font-bold">${timeStr}</span></div>
                                 <div class="font-mono">Lat: ${p.coords.lat.toFixed(5)}, Lng: ${p.coords.lng.toFixed(5)}</div>
                                 <div>Operator: <span class="font-bold">${escapeHtml(p.operator)}</span></div>
                             </div>
-                        `);
+                        `;
+                        marker.bindPopup(buildPopupContent("Locating address..."));
                     }
 
                     const item = document.createElement("div");
@@ -2177,12 +2182,27 @@
                             <span class="font-bold code-font truncate" style="color:${color}">${escapeHtml(identity)}</span>
                             <span class="text-[10px] text-slate-500 font-bold shrink-0">${timeStr}</span>
                         </div>
+                        <div id="${addressElId}" class="text-slate-700 font-semibold truncate">Locating address...</div>
                         <div class="text-slate-500 font-medium code-font text-[10px]">Lat: ${p.coords.lat.toFixed(5)}, Lng: ${p.coords.lng.toFixed(5)}</div>
                     `;
                     item.addEventListener("click", () => {
-                        if (locationsMap) locationsMap.setView(latlng, 16);
+                        if (locationsMap) {
+                            locationsMap.setView(latlng, 16);
+                            if (marker) marker.openPopup();
+                        }
                     });
                     listContainer.appendChild(item);
+
+                    // Resolve the real address in the background and fill it into
+                    // both the sidebar list item and the map popup once ready.
+                    fetchAddress(p.coords.lat, p.coords.lng).then(address => {
+                        const safeAddress = address ? escapeHtml(address) : "Address not found";
+                        const listEl = document.getElementById(addressElId);
+                        if (listEl) listEl.textContent = safeAddress;
+                        if (marker && marker.getPopup()) {
+                            marker.setPopupContent(buildPopupContent(safeAddress));
+                        }
+                    });
                 });
             });
 
