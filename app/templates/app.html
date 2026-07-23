@@ -1485,11 +1485,16 @@
         // For outgoing messages, show the telecom company name instead of the raw
         // recipient number - prefer sim_operator (the operator actually used to
         // send), falling back to matching the recipient against allowedNumbers.
+        // For incoming messages, the recipient is our own device/number - show
+        // the logged-in username instead of that raw number.
         function recipientLabel(m) {
             if (m.direction === "out") {
                 if (m.sim_operator && m.sim_operator !== "ALL_OPERATORS") return m.sim_operator;
                 const matched = allowedNumbers.find(n => n.phone_number === m.recipient);
                 if (matched) return matched.operator_name;
+            } else {
+                const username = sessionStorage.getItem(USERNAME_KEY);
+                if (username) return "@" + username;
             }
             return m.recipient;
         }
