@@ -916,6 +916,19 @@
             : `<span class="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wide border border-emerald-100">Incoming</span>`;
     }
 
+    // For outgoing messages, show the telecom company name instead of the raw
+    // recipient number - prefer the sim_operator recorded on the message
+    // itself (the operator actually used to send), falling back to matching
+    // the recipient number against the pre-defined numbers list.
+    function targetEndpointLabel(m) {
+        if (m.direction === "out") {
+            if (m.sim_operator && m.sim_operator !== "ALL_OPERATORS") return m.sim_operator;
+            const matched = allNumbers.find(n => n.phone_number === m.recipient);
+            if (matched) return matched.operator_name;
+        }
+        return m.recipient;
+    }
+
     function renderLogsTable() {
         const tbody = document.getElementById("logs-tbody");
         const filtered = getFilteredLogs();
@@ -929,7 +942,7 @@
         tbody.innerHTML = filtered.map(m => `
             <tr class="hover:bg-slate-50/50 transition">
                 <td class="py-3.5">${dirBadgeHtml(m)}</td>
-                <td class="py-3.5 code-font font-bold text-slate-900">${escapeHtml(m.recipient)}</td>
+                <td class="py-3.5 code-font font-bold text-slate-900">${escapeHtml(targetEndpointLabel(m))}</td>
                 <td class="py-3.5 max-w-sm break-words pr-4 text-slate-800 leading-relaxed font-semibold whitespace-pre-wrap">${escapeHtml(formatOperatorReply(m.text))}</td>
                 <td class="py-3.5 font-bold text-blue-700">${m.owner ? "@" + escapeHtml(m.owner_name || m.owner) : '<span class="text-slate-400">system</span>'}</td>
                 <td class="py-3.5 text-slate-400 font-mono text-[10px] whitespace-nowrap">${escapeHtml(formatServerTime(m.time))}</td>
@@ -948,7 +961,7 @@
         tbody.innerHTML = recent.map(m => `
             <tr class="hover:bg-slate-50/50 transition">
                 <td class="py-2.5">${dirBadgeHtml(m)}</td>
-                <td class="py-2.5 code-font font-bold text-slate-900">${escapeHtml(m.recipient)}</td>
+                <td class="py-2.5 code-font font-bold text-slate-900">${escapeHtml(targetEndpointLabel(m))}</td>
                 <td class="py-2.5 max-w-xs truncate text-slate-700" title="${escapeHtml(m.text)}">${escapeHtml(m.text)}</td>
                 <td class="py-2.5 font-bold text-blue-700">${m.owner ? "@" + escapeHtml(m.owner_name || m.owner) : '<span class="text-slate-400">system</span>'}</td>
                 <td class="py-2.5">${statusBadgeHtml(m.status)}</td>
