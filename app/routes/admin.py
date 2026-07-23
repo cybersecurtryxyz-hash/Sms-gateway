@@ -195,6 +195,14 @@ def admin_export_messages():
     if (err := _require_admin()) is not None:
         return err
 
+    # Optional filters mirroring the ones available on the Messages tab -
+    # when one is active, the export only contains the matching rows instead
+    # of the whole gateway log. "all" (or omitted) means no filtering.
+    owner_filter = (request.args.get("owner") or "all").strip()
+    direction_filter = (request.args.get("direction") or "all").strip()
+    status_filter = (request.args.get("status") or "all").strip()
+    search_q = (request.args.get("q") or "").strip().lower()
+
     conn = get_db()
     rows = conn.execute("""
         SELECT m.*, u.name AS owner_name 
@@ -211,12 +219,26 @@ def admin_export_messages():
         "Message Text", "Timestamp", "Status", "Owner", "SIM Operator"
     ])
 
+    exported_rows = 0
     for r in rows:
         direction_label = "Outgoing" if r["direction"] == "out" else "Incoming"
         recipient_display = r["recipient"]
         if r["direction"] == "in":
             owner_display = r["owner_name"] or r["owner"]
             recipient_display = owner_display if owner_display else "System"
+
+        if owner_filter != "all" and (r["owner"] or "") != owner_filter:
+            continue
+        if direction_filter != "all" and r["direction"] != direction_filter:
+            continue
+        if status_filter != "all" and (r["status"] or "") != status_filter:
+            continue
+        if search_q:
+            haystack = " ".join([
+                r["text"] or "", r["sender"] or "", recipient_display or ""
+            ]).lower()
+            if search_q not in haystack:
+                continue
 
         writer.writerow([
             r["id"],
@@ -229,12 +251,16 @@ def admin_export_messages():
             r["owner"] or "",
             r["sim_operator"] or ""
         ])
+        exported_rows += 1
 
     csv_data = "\ufeff" + output.getvalue()
+    # Give the file a name that reflects the applied filter so it's obvious
+    # at a glance whether this is the full log or just one user's data.
+    filename = f"sms_export_{owner_filter}.csv" if owner_filter != "all" else "sms_export_admin.csv"
     return Response(
         csv_data,
         mimetype="text/csv; charset=utf-8",
-        headers={"Content-disposition": "attachment; filename=sms_export_admin.csv"}
+        headers={"Content-disposition": f"attachment; filename={filename}"}
     )
 
 
