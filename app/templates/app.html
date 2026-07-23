@@ -572,8 +572,9 @@
                     if (activeContact) {
                         updateThreadOperatorDropdown(activeContact);
                         const companyName = getCompanyName(activeContact);
+                        const companyNumber = companyName ? getCompanyNumber(companyName) : null;
                         document.getElementById("thread-contact-company").textContent = companyName || activeContact;
-                        document.getElementById("thread-contact-number").textContent = companyName ? activeContact : "SMS conversation";
+                        document.getElementById("thread-contact-number").textContent = companyName ? (companyNumber || "SMS conversation") : "SMS conversation";
                     }
                 }
             } catch (err) {
@@ -970,7 +971,6 @@
                             <span class="text-sm font-bold text-slate-800 truncate">${escapeHtml(companyName || conv.contact)}</span>
                             <span class="text-[10px] text-slate-500 font-medium shrink-0 ml-2">${formatListTimestamp(conv.lastMessage.time)}</span>
                         </div>
-                        ${companyName ? `<div class="text-[10px] text-slate-400 font-medium code-font truncate">${escapeHtml(conv.contact)}</div>` : ""}
                         <p class="text-xs text-slate-500 truncate mt-0.5">${statusPrefix}${escapeHtml(conv.lastMessage.text)}</p>
                     </div>
                 `;
@@ -1021,6 +1021,12 @@
             return getCompanyNameFromMessages(getMessagesForContact(contact));
         }
 
+        // The company's own registered gateway number for a given operator name.
+        function getCompanyNumber(companyName) {
+            const matched = allowedNumbers.find(n => n.operator_name === companyName);
+            return matched ? matched.phone_number : null;
+        }
+
         // --- Thread (single conversation) view ---------------------------
         function updateThreadOperatorDropdown(contact) {
             const selectThread = document.getElementById("thread-sim-operator");
@@ -1028,6 +1034,16 @@
             selectThread.innerHTML = "";
 
             const companyName = getCompanyName(contact);
+
+            if (companyName) {
+                // This conversation was already sent through a known operator -
+                // keep replies going through that same operator only.
+                const opt = document.createElement("option");
+                opt.value = companyName;
+                opt.textContent = companyName;
+                selectThread.appendChild(opt);
+                return;
+            }
 
             allowedNumbers.forEach(n => {
                 const opt = document.createElement("option");
@@ -1049,18 +1065,14 @@
                 opt.textContent = "Default SIM";
                 selectThread.appendChild(opt);
             }
-
-            // Pre-select whichever operator this conversation was actually sent through
-            if (companyName && Array.from(selectThread.options).some(o => o.value === companyName)) {
-                selectThread.value = companyName;
-            }
         }
 
         function openThread(contact) {
             activeContact = contact;
             const companyName = getCompanyName(contact);
+            const companyNumber = companyName ? getCompanyNumber(companyName) : null;
             document.getElementById("thread-contact-company").textContent = companyName || contact;
-            document.getElementById("thread-contact-number").textContent = companyName ? contact : "SMS conversation";
+            document.getElementById("thread-contact-number").textContent = companyName ? (companyNumber || "SMS conversation") : "SMS conversation";
             showPanel(panelThread);
             updateThreadOperatorDropdown(contact);
             renderThread(contact);
