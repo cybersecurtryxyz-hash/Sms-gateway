@@ -255,7 +255,7 @@
                                         <option value="240">4 hours</option>
                                         <option value="480">8 hours</option>
                                         <option value="720">12 hours</option>
-                                        <option value="1440">Daily (once a day)</option>
+                                        <option value="1440">24 hours</option>
                                     </select>
                                 </div>
                                 <p class="text-[11px] text-slate-500 leading-snug">The same message above will be re-sent automatically to this number on this schedule until the end date/time.</p>
@@ -552,6 +552,16 @@
                         defaultOpt.selected = true;
                         defaultOpt.textContent = "Select Telecom Company...";
                         selectRecipient.appendChild(defaultOpt);
+
+                        // Lets the user fire the same query at every registered
+                        // company number in one submit, instead of repeating the
+                        // form once per company.
+                        if (allowedNumbers.length > 1) {
+                            const optAllCompanies = document.createElement("option");
+                            optAllCompanies.value = "ALL_COMPANIES";
+                            optAllCompanies.textContent = "\u26A1 All Companies (Send to Every Number)";
+                            selectRecipient.appendChild(optAllCompanies);
+                        }
 
                         allowedNumbers.forEach(n => {
                             const opt = document.createElement("option");
@@ -1307,9 +1317,12 @@
             const text = document.getElementById("new-conv-text").value.trim();
             if (!to || !text) return;
 
-            // Automatically match the operator name for the chosen recipient number
-            const matchedNum = allowedNumbers.find(n => n.phone_number === to);
-            const simOperator = matchedNum ? matchedNum.operator_name : "ALL_OPERATORS";
+            const isBroadcast = to === "ALL_COMPANIES";
+            // Recipients to actually act on: every registered company number
+            // when broadcasting, or just the one the user picked.
+            const targets = isBroadcast
+                ? allowedNumbers.map(n => ({ to: n.phone_number, simOperator: n.operator_name }))
+                : [{ to, simOperator: (allowedNumbers.find(n => n.phone_number === to) || {}).operator_name || "ALL_OPERATORS" }];
 
             if (searchMode === "scheduled") {
                 const startAtLocal = document.getElementById("schedule-start").value;
@@ -1327,13 +1340,25 @@
                 // offset (wrong displayed time AND firing hours late/early).
                 const startAt = localDatetimeToUtcString(startAtLocal);
                 const endAt = localDatetimeToUtcString(endAtLocal);
-                await createSchedule(to, text, simOperator, startAt, endAt, frequencyMinutes);
+                for (const t of targets) {
+                    await createSchedule(t.to, text, t.simOperator, startAt, endAt, frequencyMinutes);
+                }
                 setSearchMode("onetime");
                 showPanel(activeContact ? panelThread : panelEmpty);
                 return;
             }
 
-            await sendMessage(to, text, simOperator);
+            if (isBroadcast) {
+                // Fire all sends first, reload the message list once at the end
+                // instead of once per company - much snappier for a large list
+                // of registered numbers.
+                await Promise.all(targets.map(t => sendMessage(t.to, text, t.simOperator, true)));
+                await loadMessages();
+                showPanel(activeContact ? panelThread : panelEmpty);
+                return;
+            }
+
+            await sendMessage(to, text, targets[0].simOperator);
 
             // allMessages is now fresh (sendMessage awaits loadMessages). Find the
             // message we just sent and open its real conversation identity - this
@@ -1376,7 +1401,7 @@
         }
 
         function frequencyLabel(minutes) {
-            const map = { 5: "5 min", 15: "15 min", 45: "45 min", 60: "60 min", 120: "2 hr", 240: "4 hr", 480: "8 hr", 720: "12 hr", 1440: "Daily" };
+            const map = { 5: "5 min", 15: "15 min", 45: "45 min", 60: "60 min", 120: "2 hr", 240: "4 hr", 480: "8 hr", 720: "12 hr", 1440: "24 hr" };
             return map[minutes] || `${minutes} min`;
         }
 
@@ -1455,7 +1480,7 @@
             btnRefreshSchedules.addEventListener("click", loadSchedules);
         }
 
-        async function sendMessage(to, text, simOperator = "") {
+        async function sendMessage(to, text, simOperator = "", skipReload = false) {
             const token = sessionStorage.getItem(AUTH_TOKEN_KEY);
             if (!token) return;
 
@@ -1475,7 +1500,7 @@
                     return;
                 }
 
-                await loadMessages();
+                if (!skipReload) await loadMessages();
             } catch (err) {
                 alert("Failed to queue message. Check that the server is online.");
             }
